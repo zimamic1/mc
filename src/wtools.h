@@ -7,6 +7,7 @@
 #define MC_WTOOLS_H
 
 #include "lib/global.h"
+#include "lib/strutil.h"		/* align_crt_t */
 #include "dialog.h"
 #include "widget.h"
 
@@ -259,9 +260,23 @@ struct Dlg_head *create_message (int flags, const char *title,
 void message (int flags, const char *title, const char *text, ...)
     __attribute__ ((format (__printf__, 3, 4)));
 
-
 /* Use this as header for message() - it expands to "Error" */
 #define MSG_ERROR ((char *) -1)
+
+/* Status message of long-time operations.
+   Usesful to show progress of long-time operaions and interrupt it. */
+typedef struct status_msg_dlg_t {
+    Dlg_head *dlg;
+    WLabel *msg;
+    align_crt_t align;
+} status_msg_dlg_t;
+
+status_msg_dlg_t *status_msg_dlg_create (const char *title, align_crt_t align);
+void status_msg_dlg_destroy (status_msg_dlg_t *dlg);
+void status_msg_dlg_create_static (status_msg_dlg_t *dlg, const char *title, align_crt_t align);
+void status_msg_dlg_destroy_static (status_msg_dlg_t *dlg);
+/* Returns TRUE if 'Abort' button was pressed */
+gboolean status_msg_dlg_update (const void *dlg, const char *msg);
 
 int query_dialog (const char *header, const char *text, int flags, int count, ...);
 

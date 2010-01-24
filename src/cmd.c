@@ -68,7 +68,7 @@
 #include "consaver/cons.saver.h"        /* console_flag */
 #include "dialog.h"             /* Widget */
 #include "dialog-switch.h"
-#include "wtools.h"             /* message() */
+#include "wtools.h"             /* message(), status_msg_dlg_t */
 #include "main.h"               /* change_panel() */
 #include "panel.h"              /* current_panel */
 #include "help.h"               /* interactive_display() */
@@ -1340,26 +1340,24 @@ void
 single_dirsize_cmd (void)
 {
     WPanel *panel = current_panel;
-    file_entry *entry;
-    off_t marked;
-    double total;
-    ComputeDirSizeUI *ui;
+    file_entry *entry = &panel->dir.list[panel->selected];
 
-    entry = &(panel->dir.list[panel->selected]);
     if (S_ISDIR (entry->st.st_mode) && strcmp (entry->fname, "..") != 0)
     {
-        ui = compute_dir_size_create_ui ();
+        off_t marked;
+        double total = 0.0;
+        status_msg_dlg_t dlg;
 
-        total = 0.0;
+        status_msg_dlg_create_static (&dlg, _("Directory scanning"), J_LEFT);
 
-        if (compute_dir_size (entry->fname, ui, compute_dir_size_update_ui,
+        if (compute_dir_size (entry->fname, &dlg, status_msg_dlg_update,
                               &marked, &total, TRUE) == FILE_CONT)
         {
             entry->st.st_size = (off_t) total;
             entry->f.dir_size_computed = 1;
         }
 
-        compute_dir_size_destroy_ui (ui);
+        status_msg_dlg_destroy_static (&dlg);
     }
 
     if (panels_options.mark_moves_down)
@@ -1367,7 +1365,7 @@ single_dirsize_cmd (void)
 
     recalculate_panel_summary (panel);
 
-    if (current_panel->current_sort_field->sort_routine == (sortfn *) sort_size)
+    if (panel->current_sort_field->sort_routine == (sortfn *) sort_size)
         panel_re_sort (panel);
 
     panel->dirty = 1;
@@ -1377,33 +1375,32 @@ void
 dirsizes_cmd (void)
 {
     WPanel *panel = current_panel;
+    status_msg_dlg_t dlg;
     int i;
-    off_t marked;
-    double total;
-    ComputeDirSizeUI *ui;
 
-    ui = compute_dir_size_create_ui ();
+    status_msg_dlg_create_static (&dlg, _("Directory scanning"), J_LEFT);
 
     for (i = 0; i < panel->count; i++)
-        if (S_ISDIR (panel->dir.list[i].st.st_mode)
-            && ((panel->dirs_marked && panel->dir.list[i].f.marked)
-                || !panel->dirs_marked) && strcmp (panel->dir.list[i].fname, "..") != 0)
+        if (S_ISDIR (panel->dir.list [i].st.st_mode)
+            && ((panel->dirs_marked && panel->dir.list [i].f.marked)
+                || !panel->dirs_marked) && strcmp (panel->dir.list [i].fname, "..") != 0)
         {
-            total = 0.0l;
+            off_t marked;
+            double total = 0.0l;
 
-            if (compute_dir_size (panel->dir.list[i].fname,
-                                  ui, compute_dir_size_update_ui, &marked, &total, TRUE) != FILE_CONT)
+            if (compute_dir_size (panel->dir.list [i].fname,
+                                  &dlg, status_msg_dlg_update, &marked, &total, TRUE) != FILE_CONT)
                 break;
 
-            panel->dir.list[i].st.st_size = (off_t) total;
-            panel->dir.list[i].f.dir_size_computed = 1;
+            panel->dir.list [i].st.st_size = (off_t) total;
+            panel->dir.list [i].f.dir_size_computed = 1;
         }
 
-    compute_dir_size_destroy_ui (ui);
+    status_msg_dlg_destroy_static (&dlg);
 
     recalculate_panel_summary (panel);
 
-    if (current_panel->current_sort_field->sort_routine == (sortfn *) sort_size)
+    if (panel->current_sort_field->sort_routine == (sortfn *) sort_size)
         panel_re_sort (panel);
 
     panel->dirty = 1;
@@ -1412,10 +1409,9 @@ dirsizes_cmd (void)
 void
 save_setup_cmd (void)
 {
-    if (!save_setup ())
-        return;
-    message (D_NORMAL, _("Setup"), _("Setup saved to ~/%s"),
-             MC_USERCONF_DIR PATH_SEP_STR MC_CONFIG_FILE);
+    if (save_setup ())
+        message (D_NORMAL, _("Setup"), _("Setup saved to ~/%s"),
+                 MC_USERCONF_DIR PATH_SEP_STR MC_CONFIG_FILE);
 }
 
 static void

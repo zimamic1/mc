@@ -1549,92 +1549,14 @@ panel_get_file (WPanel * panel, struct stat *stat_buf)
     return NULL;
 }
 
-
-ComputeDirSizeUI *
-compute_dir_size_create_ui (void)
-{
-    ComputeDirSizeUI *ui;
-
-    const char *b_name = N_("&Abort");
-
-#ifdef ENABLE_NLS
-    b_name = _(b_name);
-#endif
-
-    ui = g_new (ComputeDirSizeUI, 1);
-
-    ui->dlg = create_dlg (TRUE, 0, 0, 8, COLS / 2, dialog_colors, NULL,
-                          NULL, _("Directory scanning"), DLG_CENTER);
-    ui->dirname = label_new (3, 3, "");
-    add_widget (ui->dlg, ui->dirname);
-
-    add_widget (ui->dlg,
-                button_new (5, (ui->dlg->cols - strlen (b_name)) / 2,
-                            FILE_ABORT, NORMAL_BUTTON, b_name, NULL));
-
-    /* We will manage the dialog without any help,
-       that's why we have to call init_dlg */
-    init_dlg (ui->dlg);
-
-    return ui;
-}
-
-void
-compute_dir_size_destroy_ui (ComputeDirSizeUI * ui)
-{
-    if (ui != NULL)
-    {
-        /* schedule to update passive panel */
-        other_panel->dirty = 1;
-
-        /* close and destroy dialog */
-        dlg_run_done (ui->dlg);
-        destroy_dlg (ui->dlg);
-        g_free (ui);
-    }
-}
-
-FileProgressStatus
-compute_dir_size_update_ui (const void *ui, const char *dirname)
-{
-    const ComputeDirSizeUI *this = (const ComputeDirSizeUI *) ui;
-    int c;
-    Gpm_Event event;
-
-    if (ui == NULL)
-        return FILE_CONT;
-
-    label_set_text (this->dirname, name_trunc (dirname, this->dlg->cols - 6));
-
-    event.x = -1;               /* Don't show the GPM cursor */
-    c = tty_get_event (&event, FALSE, FALSE);
-    if (c == EV_NONE)
-        return FILE_CONT;
-
-    /* Reinitialize to avoid old values after events other than
-       selecting a button */
-    this->dlg->ret_value = FILE_CONT;
-
-    dlg_process_event (this->dlg, c, &event);
-
-    switch (this->dlg->ret_value)
-    {
-    case B_CANCEL:
-    case FILE_ABORT:
-        return FILE_ABORT;
-    default:
-        return FILE_CONT;
-    }
-}
-
 /**
  * compute_dir_size:
  *
  * Computes the number of bytes used by the files in a directory
  */
 FileProgressStatus
-compute_dir_size (const char *dirname, const void *ui,
-                  compute_dir_size_callback cback,
+compute_dir_size (const char *dirname, const void *status_dlg,
+                  gboolean (*cback) (const void *dlg, const char *msg),
                   off_t * ret_marked, double *ret_total, gboolean compute_symlinks)
 {
     int res;
@@ -1667,7 +1589,7 @@ compute_dir_size (const char *dirname, const void *ui,
     {
         char *fullname;
 
-        ret = (cback != NULL) ? cback (ui, dirname) : FILE_CONT;
+        ret = (cback != NULL) && cback (status_dlg, dirname) ? FILE_ABORT : FILE_CONT;
 
         if (ret != FILE_CONT)
             break;
@@ -1691,9 +1613,8 @@ compute_dir_size (const char *dirname, const void *ui,
             off_t subdir_count = 0;
             double subdir_bytes = 0;
 
-            ret =
-                compute_dir_size (fullname, ui, cback, &subdir_count, &subdir_bytes,
-                                  compute_symlinks);
+            ret = compute_dir_size (fullname, status_dlg, cback, &subdir_count, &subdir_bytes,
+                                    compute_symlinks);
 
             if (ret != FILE_CONT)
             {
@@ -1727,8 +1648,8 @@ compute_dir_size (const char *dirname, const void *ui,
  * overwrite any files by doing the copy.
  */
 static FileProgressStatus
-panel_compute_totals (const WPanel * panel, const void *ui,
-                      compute_dir_size_callback cback,
+panel_compute_totals (const WPanel * panel, const void *status_dlg,
+                      gboolean (*cback) (const void *dlg, const char *msg),
                       off_t * ret_marked, double *ret_total, gboolean compute_symlinks)
 {
     int i;
@@ -1754,8 +1675,8 @@ panel_compute_totals (const WPanel * panel, const void *ui,
 
             dir_name = concat_dir_and_file (panel->cwd, panel->dir.list[i].fname);
 
-            status = compute_dir_size (dir_name, ui, cback,
-                                       &subdir_count, &subdir_bytes, compute_symlinks);
+            status  = compute_dir_size (dir_name, status_dlg, cback,
+                                        &subdir_count, &subdir_bytes, compute_symlinks);
             g_free (dir_name);
 
             if (status != FILE_CONT)
@@ -1783,20 +1704,20 @@ panel_operate_init_totals (FileOperation operation,
 
     if (operation != OP_MOVE && verbose && file_op_compute_totals)
     {
-        ComputeDirSizeUI *ui;
+        status_msg_dlg_t dlg;
 
-        ui = compute_dir_size_create_ui ();
+        status_msg_dlg_create_static (&dlg, _("Directory scanning"), J_LEFT);
 
         if (source != NULL)
-            status = compute_dir_size (source, ui, compute_dir_size_update_ui,
+            status = compute_dir_size (source, &dlg, status_msg_dlg_update,
                                        &ctx->progress_count, &ctx->progress_bytes,
                                        ctx->follow_links);
         else
-            status = panel_compute_totals (panel, ui, compute_dir_size_update_ui,
+            status = panel_compute_totals (panel, &dlg, status_msg_dlg_update,
                                            &ctx->progress_count, &ctx->progress_bytes,
                                            ctx->follow_links);
 
-        compute_dir_size_destroy_ui (ui);
+        status_msg_dlg_destroy_static (&dlg);
 
         ctx->progress_totals_computed = (status == FILE_CONT);
     }
@@ -1964,7 +1885,7 @@ end_bg_process (FileOpContext * ctx, enum OperationMode mode)
     ctx->pid = 0;
 
     unregister_task_with_pid (pid);
-    /*     file_op_context_destroy(ctx); */
+/*     file_op_context_destroy(ctx); */
     return 1;
 }
 #endif
@@ -2009,7 +1930,7 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
     static gboolean i18n_flag = FALSE;
     if (!i18n_flag)
     {
-        for (i = sizeof (op_names1) / sizeof (op_names1[0]); i--;)
+        for (i = sizeof (op_names) / sizeof (op_names[0]); i--;)
             op_names[i] = Q_ (op_names[i]);
         i18n_flag = TRUE;
     }

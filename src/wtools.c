@@ -679,6 +679,86 @@ input_expand_dialog (const char *header, const char *text,
 
 /* }}} */
 
+status_msg_dlg_t *
+status_msg_dlg_create (const char *title, align_crt_t align)
+{
+    status_msg_dlg_t *dlg;
+
+    dlg = g_try_new (status_msg_dlg_t, 1);
+    status_msg_dlg_create_static (dlg, title, align);
+
+    return dlg;
+}
+
+void
+status_msg_dlg_destroy (status_msg_dlg_t * dlg)
+{
+    status_msg_dlg_destroy_static (dlg);
+    g_free (dlg);
+}
+
+void
+status_msg_dlg_create_static (status_msg_dlg_t * dlg, const char *title, align_crt_t align)
+{
+    const char *b_name = N_("&Abort");
+
+    g_return_if_fail (dlg != NULL);
+
+#ifdef ENABLE_NLS
+    b_name = _(b_name);
+#endif
+
+    dlg->dlg = create_dlg (TRUE, 0, 0, 8, min (max (40, COLS / 2), COLS), dialog_colors,
+                           NULL, NULL, title, DLG_CENTER);
+    dlg->msg = label_new (3, 3, "");
+    add_widget (dlg->dlg, dlg->msg);
+
+    add_widget (dlg->dlg,
+                button_new (5, (dlg->dlg->cols - str_term_width1 (b_name) - 3) / 2,
+                            B_CANCEL, NORMAL_BUTTON, b_name, NULL));
+
+    dlg->align = align;
+
+    /* We will manage the dialog without any help,
+       that's why we have to call init_dlg */
+    init_dlg (dlg->dlg);
+}
+
+void
+status_msg_dlg_destroy_static (status_msg_dlg_t * dlg)
+{
+    if (dlg != NULL)
+    {
+        /* close and destroy dialog */
+        dlg_run_done (dlg->dlg);
+        destroy_dlg (dlg->dlg);
+    }
+}
+
+gboolean
+status_msg_dlg_update (const void *dlg, const char *msg)
+{
+    const status_msg_dlg_t *this = (const status_msg_dlg_t *) dlg;
+    int c;
+    Gpm_Event event;
+
+    if (dlg == NULL)
+        return FALSE;
+
+    label_set_text (this->msg, str_fit_to_term (msg, this->dlg->cols - 6, this->align));
+
+    event.x = -1;               /* Don't show the GPM cursor */
+    c = tty_get_event (&event, FALSE, FALSE);
+    if (c == EV_NONE)
+        return FALSE;
+
+    /* Reinitialize by non-B_CANCEL value to avoid old values
+       after events other than selecting a button */
+    this->dlg->ret_value = B_ENTER;
+    dlg_process_event (this->dlg, c, &event);
+    return (this->dlg->ret_value == B_CANCEL);
+}
+
 /* }}} */
 /*
    Cause emacs to enter folding mode for this file:
