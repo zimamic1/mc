@@ -327,9 +327,8 @@ void mcview_display_text (mcview_t *);
 
 /* search.c: */
 int mcview_search_cmd_callback (const void *user_data, gsize char_offset);
-int mcview_search_update_cmd_callback (const void *, gsize);
+mc_search_cbret_t mcview_search_update_cmd_callback (const void *user_data, gsize char_offset);
 void mcview_do_search (mcview_t * view);
-
 
 /*** inline functions ****************************************************************************/
 

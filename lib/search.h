@@ -10,19 +10,6 @@
 #ifdef SEARCH_TYPE_PCRE
 #	include <pcre.h>
 #endif
-
-/*** typedefs(not structures) and defined constants **********************************************/
-
-typedef int (*mc_search_fn) (const void *user_data, gsize char_offset);
-
-#define MC_SEARCH__NUM_REPLACE_ARGS 64
-
-#ifdef SEARCH_TYPE_GLIB
-#	define mc_search_matchinfo_t GMatchInfo
-#else
-#	define mc_search_matchinfo_t pcre_extra
-#endif
-
 /*** enums ***************************************************************************************/
 
 typedef enum {
@@ -48,8 +35,20 @@ typedef enum {
     MC_SEARCH_CB_SKIP = -3
 } mc_search_cbret_t;
 
+/*** typedefs (not structures) and defined constants *********************************************/
 
-/*** structures declarations (and typedefs of structures)*****************************************/
+typedef int (*mc_search_fn) (const void *user_data, gsize char_offset);
+typedef mc_search_cbret_t (*mc_search_update_fn) (const void *user_data, gsize char_offset);
+
+#define MC_SEARCH__NUM_REPLACE_ARGS 64
+
+#ifdef SEARCH_TYPE_GLIB
+#	define mc_search_matchinfo_t GMatchInfo
+#else
+#	define mc_search_matchinfo_t pcre_extra
+#endif
+
+/*** structures declarations (and typedefs of structures) ****************************************/
 
 typedef struct mc_search_struct {
 
@@ -70,11 +69,11 @@ typedef struct mc_search_struct {
     /* search entire string (from begin to end). Used only with GLOB search type */
     gboolean is_entire_line;
 
-    /* function, used for getting data. NULL if not used */
+    /* function used for getting data. NULL if not used */
     mc_search_fn search_fn;
 
-    /* function, used for updatin current search status. NULL if not used */
-    mc_search_fn update_fn;
+    /* function used for current search status update. NULL if not used */
+    mc_search_update_fn update_fn;
 
     /* type of search */
     mc_search_type_t search_type;

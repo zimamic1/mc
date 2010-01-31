@@ -38,9 +38,10 @@
 #include <config.h>
 
 #include "lib/global.h"
+#include "lib/tty/tty.h"
+#include "lib/strutil.h"
 #include "src/setup.h"
 #include "src/wtools.h"
-#include "lib/tty/tty.h"
 #include "internal.h"
 
 /*** global variables ****************************************************************************/
@@ -50,6 +51,8 @@
 /*** file scope type declarations ****************************************************************/
 
 /*** file scope variables ************************************************************************/
+
+static status_msg_dlg_t search_status_dlg;
 
 /*** file scope functions ************************************************************************/
 
@@ -109,13 +112,13 @@ mcview_find (mcview_t * view, gsize search_start, gsize * len)
 /* --------------------------------------------------------------------------------------------- */
 
 static void
-mcview_search_show_result (mcview_t * view, Dlg_head ** d, size_t match_len)
+mcview_search_show_result (mcview_t * view, size_t match_len)
 {
-
     view->search_start = view->search->normal_offset +
         mcview__get_nroff_real_len (view,
                                     view->search->start_buffer,
-                                    view->search->normal_offset - view->search->start_buffer);
+                                    view->search->normal_offset -
+                                    view->search->start_buffer);
 
     if (!view->hex_mode)
         view->search_start++;
@@ -131,15 +134,7 @@ mcview_search_show_result (mcview_t * view, Dlg_head ** d, size_t match_len)
         view->dpy_end = view->search_end - view->search_end % view->bytes_per_line;
     }
 
-    if (verbose)
-    {
-        dlg_run_done (*d);
-        destroy_dlg (*d);
-        *d = create_message (D_NORMAL, _("Search"), _("Seeking to search result"));
-        tty_refresh ();
-    }
     mcview_moveto_match (view);
-
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -184,26 +179,33 @@ mcview_search_cmd_callback (const void *user_data, gsize char_offset)
 
 /* --------------------------------------------------------------------------------------------- */
 
-int
+mc_search_cbret_t
 mcview_search_update_cmd_callback (const void *user_data, gsize char_offset)
 {
     mcview_t *view = (mcview_t *) user_data;
+    mc_search_cbret_t result = MC_SEARCH_CB_OK;
 
-    if (char_offset >= (gsize) view->update_activate)
+    if (char_offset >= view->update_activate)
     {
+        off_t percent;
+        char msg[BUF_TINY];
+
         view->update_activate += view->update_steps;
-        if (verbose)
-        {
-            mcview_percent (view, char_offset);
-            tty_refresh ();
-        }
-        if (tty_got_interrupt ())
-            return MC_SEARCH_CB_ABORT;
+        percent = mcview_calc_percent (view, char_offset);
+
+        if (percent >= 0)
+            g_snprintf (msg, sizeof (msg), _("Searching %s: %d%%"),
+                                            view->last_search_string, (int) percent);
+        else
+            g_snprintf (msg, sizeof (msg), _("Searching %s"), view->last_search_string);
+
+        if (status_msg_dlg_update (&search_status_dlg, msg))
+            result = MC_SEARCH_CB_ABORT;
     }
     /* may be in future return from this callback will change current position
      * in searching block. Now this just constant return value.
      */
-    return MC_SEARCH_CB_OK;
+    return result;
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -215,28 +217,17 @@ mcview_do_search (mcview_t * view)
     gboolean isFound = FALSE;
     gboolean need_search_again = TRUE;
 
-    Dlg_head *d = NULL;
-
     size_t match_len;
 
-    if (verbose)
+    /* for avoid infinite search loop we need to increase or decrease start offset of search */
+    if (view->search_start != 0)
     {
-        d = create_message (D_NORMAL, _("Search"), _("Searching %s"), view->last_search_string);
-        tty_refresh ();
-    }
-
-    /*for avoid infinite search loop we need to increase or decrease start offset of search */
-
-    if (view->search_start)
-    {
-        search_start = (mcview_search_options.backwards) ? -2 : 2;
-        search_start = view->search_start + search_start +
+        search_start = mcview_search_options.backwards ? -2 : 2;
+        search_start += view->search_start +
             mcview__get_nroff_real_len (view, view->search_start, 2) * search_start;
     }
     else
-    {
         search_start = view->search_start;
-    }
 
     if (mcview_search_options.backwards && (int) search_start < 0)
         search_start = 0;
@@ -245,7 +236,7 @@ mcview_do_search (mcview_t * view)
     mcview_search_update_steps (view);
     view->update_activate = 0;
 
-    tty_enable_interrupt_key ();
+    status_msg_dlg_create_static (&search_status_dlg, _("Search"), J_CENTER);
 
     do
     {
@@ -256,7 +247,6 @@ mcview_do_search (mcview_t * view)
 
         if (!mcview_find (view, search_start, &match_len))
         {
-
             if (view->search->error_str == NULL)
                 break;
 
@@ -270,12 +260,14 @@ mcview_do_search (mcview_t * view)
             continue;
         }
 
-        mcview_search_show_result (view, &d, match_len);
+        mcview_search_show_result (view, match_len);
         need_search_again = FALSE;
         isFound = TRUE;
         break;
     }
     while (mcview_may_still_grow (view));
+
+    status_msg_dlg_destroy_static (&search_status_dlg);
 
     if (view->search_start != 0 && !isFound && need_search_again && !mcview_search_options.backwards)
     {
@@ -287,37 +279,21 @@ mcview_do_search (mcview_t * view)
                           _("&No"));
 
         if (result != 0)
-        {
             isFound = TRUE;
-        }
         else
-        {
             search_start = 0;
-        }
     }
 
     if (!isFound && view->search->error_str != NULL && mcview_find (view, search_start, &match_len))
     {
-        mcview_search_show_result (view, &d, match_len);
+        mcview_search_show_result (view, match_len);
         isFound = TRUE;
     }
 
-    if (!isFound)
-    {
-        if (view->search->error_str)
-            message (D_NORMAL, _("Search"), "%s", view->search->error_str);
-    }
+    if (!isFound && view->search->error_str != NULL)
+        message (D_NORMAL, _("Search"), "%s", view->search->error_str);
 
     view->dirty++;
-    mcview_update (view);
-
-    tty_disable_interrupt_key ();
-    if (verbose)
-    {
-        dlg_run_done (d);
-        destroy_dlg (d);
-    }
-
 }
 
 /* --------------------------------------------------------------------------------------------- */
