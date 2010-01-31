@@ -262,7 +262,6 @@ void mcview_update_bytes_per_line (mcview_t * view);
 void mcview_display_toggle_ruler (mcview_t * view);
 void mcview_display_clean (mcview_t * view);
 void mcview_display_ruler (mcview_t * view);
-void mcview_percent (mcview_t * view, off_t p);
 
 /* growbuf.c: */
 void mcview_growbuf_init (mcview_t * view);
@@ -295,13 +294,13 @@ off_t mcview_eol (mcview_t * view, off_t current);
 char *mcview_get_title (const Dlg_head * h, size_t len);
 gboolean mcview_lock_file (mcview_t * view);
 gboolean mcview_unlock_file (mcview_t * view);
+off_t mcview_calc_percent (mcview_t  *view, off_t p);
 
 /* move.c */
 void mcview_move_up (mcview_t *, off_t);
 void mcview_move_down (mcview_t *, off_t);
 void mcview_move_left (mcview_t *, off_t);
 void mcview_move_right (mcview_t *, off_t);
-void mcview_scroll_to_cursor (mcview_t *);
 void mcview_moveto_top (mcview_t *);
 void mcview_moveto_bottom (mcview_t *);
 void mcview_moveto_bol (mcview_t *);

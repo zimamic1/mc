@@ -68,6 +68,26 @@
 /*** file scope functions ************************************************************************/
 
 static void
+mcview_scroll_to_cursor (mcview_t * view)
+{
+    if (view->hex_mode) {
+        const off_t bytes = view->bytes_per_line;
+        const off_t displaysize = view->data_area.height * bytes;
+        const off_t cursor = view->hex_cursor;
+        off_t topleft = view->dpy_start;
+
+        if (topleft + displaysize <= cursor)
+            topleft = mcview_offset_rounddown (cursor, bytes)
+                - (displaysize - bytes);
+        if (cursor < topleft)
+            topleft = mcview_offset_rounddown (cursor, bytes);
+        view->dpy_start = topleft;
+    }
+}
+
+/* --------------------------------------------------------------------------------------------- */
+
+static void
 mcview_movement_fixups (mcview_t * view, gboolean reset_search)
 {
     mcview_scroll_to_cursor (view);
@@ -242,26 +262,6 @@ mcview_move_right (mcview_t * view, off_t columns)
         view->dpy_text_column += columns;
     }
     mcview_movement_fixups (view, FALSE);
-}
-
-/* --------------------------------------------------------------------------------------------- */
-
-void
-mcview_scroll_to_cursor (mcview_t * view)
-{
-    if (view->hex_mode)
-    {
-        const off_t bytes = view->bytes_per_line;
-        const off_t displaysize = view->data_area.height * bytes;
-        const off_t cursor = view->hex_cursor;
-        off_t topleft = view->dpy_start;
-
-        if (topleft + displaysize <= cursor)
-            topleft = mcview_offset_rounddown (cursor, bytes) - (displaysize - bytes);
-        if (cursor < topleft)
-            topleft = mcview_offset_rounddown (cursor, bytes);
-        view->dpy_start = topleft;
-    }
 }
 
 /* --------------------------------------------------------------------------------------------- */

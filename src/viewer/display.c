@@ -123,6 +123,22 @@ mcview_set_buttonbar (mcview_t * view)
 
 /* --------------------------------------------------------------------------------------------- */
 
+static void
+mcview_display_percent (mcview_t *view, off_t p)
+{
+    const screen_dimen top = view->status_area.top;
+    const screen_dimen right = view->status_area.left + view->status_area.width;
+    off_t percent;
+
+    percent = mcview_calc_percent (view, p);
+
+    if (percent >= 0) {
+        widget_move (view, top, right - 4);
+        tty_printf ("%3d%%", percent);
+    }
+}
+
+/* --------------------------------------------------------------------------------------------- */
 
 static void
 mcview_display_status (mcview_t * view)
@@ -170,7 +186,7 @@ mcview_display_status (mcview_t * view)
     else
         tty_print_string (str_fit_to_term (file_label, width - 5, J_LEFT_FIT));
     if (width > 26)
-        mcview_percent (view, view->hex_mode ? view->hex_cursor : view->dpy_end);
+        mcview_display_percent (view, view->hex_mode ? view->hex_cursor : view->dpy_end);
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -387,33 +403,3 @@ mcview_display_ruler (mcview_t * view)
     }
     tty_setcolor (NORMAL_COLOR);
 }
-
-/* --------------------------------------------------------------------------------------------- */
-
-void
-mcview_percent (mcview_t * view, off_t p)
-{
-    const screen_dimen top = view->status_area.top;
-    const screen_dimen right = view->status_area.left + view->status_area.width;
-    const screen_dimen height = view->status_area.height;
-    int percent;
-    off_t filesize;
-
-    if (height < 1 || right < 4)
-        return;
-    if (mcview_may_still_grow (view))
-        return;
-    filesize = mcview_get_filesize (view);
-
-    if (filesize == 0 || view->dpy_end == filesize)
-        percent = 100;
-    else if (p > (INT_MAX / 100))
-        percent = p / (filesize / 100);
-    else
-        percent = p * 100 / filesize;
-
-    widget_move (view, top, right - 4);
-    tty_printf ("%3d%%", percent);
-}
-
-/* --------------------------------------------------------------------------------------------- */
