@@ -295,6 +295,7 @@ off_t mcview_eol (mcview_t * view, off_t current);
 char *mcview_get_title (const Dlg_head * h, size_t len);
 gboolean mcview_lock_file (mcview_t * view);
 gboolean mcview_unlock_file (mcview_t * view);
+off_t view_forward3 (mcview_t * view, off_t current, off_t cols, off_t upto);
 
 /* move.c */
 void mcview_move_up (mcview_t *, off_t);

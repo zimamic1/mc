@@ -168,8 +168,9 @@ mcview_move_down (mcview_t * view, off_t lines)
                 view->dpy_end = new_offset;
 
                 new_offset = mcview_eol (view, view->dpy_start);
+                mc_log ("res: %lli\n",  view->dpy_start + view_forward3 (view, view->dpy_start, view->data_area.width, 0));
                 if (view->text_wrap_mode)
-                    new_offset = min (new_offset, view->dpy_start + view->data_area.width);
+                    new_offset = min (new_offset, view->dpy_start + view_forward3 (view, view->dpy_start, view->data_area.width, 0));
                 view->dpy_start = new_offset;
             }
             view->dpy_end = last_byte;
@@ -180,8 +181,9 @@ mcview_move_down (mcview_t * view, off_t lines)
             for (i = 0; i < lines && view->dpy_end < last_byte && new_offset < last_byte; i++)
             {
                 new_offset = mcview_eol (view, view->dpy_start);
+                mc_log ("res: %lli\n",  view->dpy_start + view_forward3 (view, view->dpy_start, view->data_area.width, 0));
                 if (view->text_wrap_mode)
-                    new_offset = min (new_offset, view->dpy_start + view->data_area.width);
+                    new_offset = min (new_offset, view->dpy_start + view_forward3 (view, view->dpy_start, view->data_area.width, 0));
                 view->dpy_start = new_offset;
             }
         }
