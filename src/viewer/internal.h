@@ -240,6 +240,7 @@ void mcview_update_filesize (mcview_t * view);
 char *mcview_get_ptr_file (mcview_t *, off_t);
 char *mcview_get_ptr_string (mcview_t *, off_t);
 int mcview_get_utf (mcview_t *, off_t, int *, gboolean *);
+int mcview_get_prev_utf (mcview_t *, off_t, int *, gboolean *);
 gboolean mcview_get_byte_string (mcview_t *, off_t, int *);
 gboolean mcview_get_byte_none (mcview_t *, off_t, int *);
 void mcview_set_byte (mcview_t *, off_t, byte);
@@ -295,7 +296,8 @@ off_t mcview_eol (mcview_t * view, off_t current);
 char *mcview_get_title (const Dlg_head * h, size_t len);
 gboolean mcview_lock_file (mcview_t * view);
 gboolean mcview_unlock_file (mcview_t * view);
-off_t view_forward3 (mcview_t * view, off_t current, off_t cols, off_t upto);
+off_t view_forward3 (mcview_t * view, off_t current, off_t cols);
+off_t view_backward3 (mcview_t * view, off_t current, off_t cols);
 
 /* move.c */
 void mcview_move_up (mcview_t *, off_t);

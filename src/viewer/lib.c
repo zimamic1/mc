@@ -451,21 +451,14 @@ mcview_unlock_file (mcview_t * view)
 
 /* --------------------------------------------------------------------------------------------- */
 
-/* If cols is zero this returns the count of columns from current to upto. */
-/* If upto is zero returns index of cols across from current. */
+/* returns index of cols across from current. */
 off_t
-view_forward3 (mcview_t * view, off_t current, off_t cols, off_t upto)
+view_forward3 (mcview_t * view, off_t current, off_t cols)
 {
     long p, q;
     int col;
 
-    if (upto)
-    {
-        q = upto;
-        cols = -10;
-    }
-    else
-        q = view->ds_file_filesize + 2;
+    q = current + 1000;
 
 
     for (col = 0, p = current; p < q; p++)
@@ -474,13 +467,6 @@ view_forward3 (mcview_t * view, off_t current, off_t cols, off_t upto)
         int c, orig_c;
         int utf_ch = 0;
         int cw = 1;
-        if (cols != -10)
-        {
-            if (col == cols)
-                return p;
-            if (col > cols)
-                return p - 1;
-        }
         mcview_get_byte (view, p, &orig_c);
         c = orig_c;
         if (view->utf8)
@@ -503,12 +489,54 @@ view_forward3 (mcview_t * view, off_t current, off_t cols, off_t upto)
         if (c == '\t')
             col += option_tab_spacing - col % option_tab_spacing;
         else if (c == '\n')
+            return p;
+        else if ((c < 32 || c == 127) && (orig_c == c || (!utf8_display && !view->utf8)))
+            /* '\r' is shown as ^M, so we must advance 2 characters */
+            /* Caret notation for control characters */
+            col += 2;
+        else
+            col++;
+    }
+    return col;
+}
+
+off_t
+view_backward3 (mcview_t * view, off_t current, off_t cols)
+{
+    long p, q;
+    int col;
+
+    q = current + 1000;
+
+    for (col = 0; col < cols; col++)
+    {
+        gboolean read_res;
+        int c, orig_c;
+        int utf_ch = 0;
+        int cw = 1;
+        mcview_get_byte (view, p, &orig_c);
+        c = orig_c;
+        if (view->utf8)
         {
-            if (upto)
-                return col;
-            else
-                return p;
+            utf_ch = mcview_get_utf (view, p, &cw, &read_res);
+            if (!read_res)
+                break;
+
+            if (utf8_display)
+            {
+                if (cw > 1)
+                    col -= cw - 1;
+                if (g_unichar_iswide (utf_ch))
+                    col++;
+            }
+            else if (cw > 1 && g_unichar_isprint (utf_ch))
+                col -= cw - 1;
         }
+        c = convert_to_display_c (c);
+        if (c == '\t')
+            col += option_tab_spacing - col % option_tab_spacing;
+        else if (c == '\n')
+            return p;
         else if ((c < 32 || c == 127) && (orig_c == c || (!utf8_display && !view->utf8)))
             /* '\r' is shown as ^M, so we must advance 2 characters */
             /* Caret notation for control characters */

@@ -215,6 +215,66 @@ mcview_get_utf (mcview_t * view, off_t byte_index, int *char_width, gboolean * r
     return ch;
 }
 
+int
+mcview_get_prev_utf (mcview_t * view, off_t byte_index, int *char_width, gboolean * result)
+{
+    gchar *str = NULL;
+    int res = -1;
+    gunichar ch;
+    gchar *prev_ch = NULL;
+    int width = 0;
+
+    *result = TRUE;
+
+    switch (view->datasource)
+    {
+    case DS_STDIO_PIPE:
+    case DS_VFS_PIPE:
+        str = mcview_get_ptr_growing_buffer (view, byte_index);
+        break;
+    case DS_FILE:
+        str = mcview_get_ptr_file (view, byte_index);
+        break;
+    case DS_STRING:
+        str = mcview_get_ptr_string (view, byte_index);
+        break;
+    case DS_NONE:
+        break;
+    }
+
+    if (str == NULL)
+    {
+        *result = FALSE;
+        width = 0;
+        return 0;
+    }
+
+    res = g_utf8_get_char_validated (str, -1);
+
+    if (res < 0)
+    {
+        ch = *str;
+        width = 0;
+    }
+    else
+    {
+        ch = res;
+        /* Calculate UTF-8 char width */
+        prev_ch = g_utf8_prev_char (str);
+        if (prev_ch)
+        {
+            width = str - prev_ch;
+        }
+        else
+        {
+            ch = 0;
+            width = 0;
+        }
+    }
+    *char_width = width;
+    return ch;
+}
+
 /* --------------------------------------------------------------------------------------------- */
 
 gboolean
