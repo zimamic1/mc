@@ -33,8 +33,8 @@ extern int file_op_compute_totals;
 FileProgressStatus file_error (const char *format, const char *file);
 
 /* return value is FILE_CONT or FILE_ABORT */
-FileProgressStatus compute_dir_size (const char *dirname, const void *status_dlg,
-                                     gboolean (*cback) (const void *dlg, const char *msg),
+FileProgressStatus compute_dir_size (const char *dirname, void *status_dlg,
+                                     gboolean (*cback) (void *dlg, const char *msg),
                                      off_t *ret_marked, double *ret_total,
                                      gboolean compute_symlinks);
 

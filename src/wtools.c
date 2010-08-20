@@ -680,12 +680,12 @@ input_expand_dialog (const char *header, const char *text,
 /* }}} */
 
 status_msg_dlg_t *
-status_msg_dlg_create (const char *title, align_crt_t align)
+status_msg_dlg_create (const char *title, double delay, align_crt_t align)
 {
     status_msg_dlg_t *dlg;
 
     dlg = g_try_new (status_msg_dlg_t, 1);
-    status_msg_dlg_create_static (dlg, title, align);
+    status_msg_dlg_create_static (dlg, title, delay, align);
 
     return dlg;
 }
@@ -698,7 +698,8 @@ status_msg_dlg_destroy (status_msg_dlg_t * dlg)
 }
 
 void
-status_msg_dlg_create_static (status_msg_dlg_t * dlg, const char *title, align_crt_t align)
+status_msg_dlg_create_static (status_msg_dlg_t * dlg, const char *title, double delay,
+                              align_crt_t align)
 {
     const char *b_name = N_("&Abort");
 
@@ -718,10 +719,17 @@ status_msg_dlg_create_static (status_msg_dlg_t * dlg, const char *title, align_c
                             B_CANCEL, NORMAL_BUTTON, b_name, NULL));
 
     dlg->align = align;
+    dlg->delay = delay;
 
-    /* We will manage the dialog without any help,
-       that's why we have to call init_dlg */
-    init_dlg (dlg->dlg);
+    if (delay > 0.01)
+        dlg->timer = g_timer_new ();
+    else
+    {
+        dlg->timer = NULL;
+       /* We will manage the dialog without any help,
+          that's why we have to call init_dlg */
+        init_dlg (dlg->dlg);
+    }
 }
 
 void
@@ -732,18 +740,36 @@ status_msg_dlg_destroy_static (status_msg_dlg_t * dlg)
         /* close and destroy dialog */
         dlg_run_done (dlg->dlg);
         destroy_dlg (dlg->dlg);
+
+        if (dlg->timer != NULL)
+        {
+            g_timer_stop (dlg->timer);
+            g_timer_destroy (dlg->timer);
+        }
     }
 }
 
 gboolean
-status_msg_dlg_update (const void *dlg, const char *msg)
+status_msg_dlg_update (void *dlg, const char *msg)
 {
-    const status_msg_dlg_t *this = (const status_msg_dlg_t *) dlg;
+    status_msg_dlg_t *this = (status_msg_dlg_t *) dlg;
     int c;
     Gpm_Event event;
 
     if (dlg == NULL)
         return FALSE;
+
+    if (this->timer != NULL)
+    {
+        if (g_timer_elapsed (this->timer, NULL) > this->delay)
+        {
+            g_timer_stop (this->timer);
+            g_timer_destroy (this->timer); /* we not need the timer anymore */
+            this->timer = NULL;
+            init_dlg (this->dlg);
+        }
+        return FALSE;
+    }
 
     label_set_text (this->msg, str_fit_to_term (msg, this->dlg->cols - 6, this->align));
 

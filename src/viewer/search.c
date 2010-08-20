@@ -236,7 +236,7 @@ mcview_do_search (mcview_t * view)
     mcview_search_update_steps (view);
     view->update_activate = 0;
 
-    status_msg_dlg_create_static (&search_status_dlg, _("Search"), J_CENTER);
+    status_msg_dlg_create_static (&search_status_dlg, _("Search"), 1.0, J_CENTER);
 
     do
     {

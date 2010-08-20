@@ -269,14 +269,17 @@ typedef struct status_msg_dlg_t {
     Dlg_head *dlg;
     WLabel *msg;
     align_crt_t align;
+    double delay;       /* delay before raise the dlg in seconds */
+    GTimer *timer;
 } status_msg_dlg_t;
 
-status_msg_dlg_t *status_msg_dlg_create (const char *title, align_crt_t align);
+status_msg_dlg_t *status_msg_dlg_create (const char *title, double delay, align_crt_t align);
 void status_msg_dlg_destroy (status_msg_dlg_t *dlg);
-void status_msg_dlg_create_static (status_msg_dlg_t *dlg, const char *title, align_crt_t align);
+void status_msg_dlg_create_static (status_msg_dlg_t *dlg, const char *title, double delay,
+                                   align_crt_t align);
 void status_msg_dlg_destroy_static (status_msg_dlg_t *dlg);
 /* Returns TRUE if 'Abort' button was pressed */
-gboolean status_msg_dlg_update (const void *dlg, const char *msg);
+gboolean status_msg_dlg_update (void *dlg, const char *msg);
 
 int query_dialog (const char *header, const char *text, int flags, int count, ...);
 

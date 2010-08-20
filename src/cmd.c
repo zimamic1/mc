@@ -1348,7 +1348,7 @@ single_dirsize_cmd (void)
         double total = 0.0;
         status_msg_dlg_t dlg;
 
-        status_msg_dlg_create_static (&dlg, _("Directory scanning"), J_LEFT);
+        status_msg_dlg_create_static (&dlg, _("Directory scanning"), 1.0, J_LEFT);
 
         if (compute_dir_size (entry->fname, &dlg, status_msg_dlg_update,
                               &marked, &total, TRUE) == FILE_CONT)
@@ -1378,7 +1378,7 @@ dirsizes_cmd (void)
     status_msg_dlg_t dlg;
     int i;
 
-    status_msg_dlg_create_static (&dlg, _("Directory scanning"), J_LEFT);
+    status_msg_dlg_create_static (&dlg, _("Directory scanning"), 1.0, J_LEFT);
 
     for (i = 0; i < panel->count; i++)
         if (S_ISDIR (panel->dir.list [i].st.st_mode)

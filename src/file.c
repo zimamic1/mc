@@ -1555,8 +1555,8 @@ panel_get_file (WPanel * panel, struct stat *stat_buf)
  * Computes the number of bytes used by the files in a directory
  */
 FileProgressStatus
-compute_dir_size (const char *dirname, const void *status_dlg,
-                  gboolean (*cback) (const void *dlg, const char *msg),
+compute_dir_size (const char *dirname, void *status_dlg,
+                  gboolean (*cback) (void *dlg, const char *msg),
                   off_t * ret_marked, double *ret_total, gboolean compute_symlinks)
 {
     int res;
@@ -1648,8 +1648,8 @@ compute_dir_size (const char *dirname, const void *status_dlg,
  * overwrite any files by doing the copy.
  */
 static FileProgressStatus
-panel_compute_totals (const WPanel * panel, const void *status_dlg,
-                      gboolean (*cback) (const void *dlg, const char *msg),
+panel_compute_totals (const WPanel * panel, void *status_dlg,
+                      gboolean (*cback) (void *dlg, const char *msg),
                       off_t * ret_marked, double *ret_total, gboolean compute_symlinks)
 {
     int i;
@@ -1706,7 +1706,7 @@ panel_operate_init_totals (FileOperation operation,
     {
         status_msg_dlg_t dlg;
 
-        status_msg_dlg_create_static (&dlg, _("Directory scanning"), J_LEFT);
+        status_msg_dlg_create_static (&dlg, _("Directory scanning"), 1.0, J_LEFT);
 
         if (source != NULL)
             status = compute_dir_size (source, &dlg, status_msg_dlg_update,
