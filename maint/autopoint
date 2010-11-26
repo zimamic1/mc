@@ -340,7 +340,24 @@ esac
 # users of CVS.
 #
 # Check availability of the CVS program.
-(cvs -v) >/dev/null 2>/dev/null || func_fatal_error "cvs program not found"
+# (cvs -v) >/dev/null 2>/dev/null || func_fatal_error "cvs program not found"
+withcvs=true
+cvs -v >/dev/null 2>&1
+if test $? -ne 0;  then
+  echo "cvs program not found. it could be possible that we still continue."
+  echo "when you are a translator you are MAYBE better off using csv and"
+  echo "the purposed version of gettext (as this 'autopoint' script checks"
+  echo "out a specific version of gettext.)"
+  echo "when your distribution is nice it should be possible to copy"
+  echo "with the installed version of your files."
+  echo "this will pollute your source directory with some trash"
+  echo "when things fail:"
+  echo "install cvs and/or a version of autopoint"
+  echo "when you modified po/intl/m4 you should stop here"
+  echo "press return to continue anyway or ctrl+c and install cvs"
+  read
+  withcvs=false
+fi
 
 # Check in which directory config.rpath, mkinstalldirs etc. belong.
 auxdir=`cat "$configure_in" | grep '^AC_CONFIG_AUX_DIR' | sed -n -e 's/AC_CONFIG_AUX_DIR(\([^()]*\))/\1/p' | sed -e 's/^\[\(.*\)\]$/\1/' | sed -e 1q`
@@ -417,24 +434,37 @@ unset CVSWRAPPERS
 
 # Need to pass -d "$CVSROOT", because there may be a CVS directory in the
 # current directory.
-cvs -d "$CVSROOT" init
-gzip -d -c < "$gettext_dir/archive.tar.gz" | (cd "$cvs_dir" && tar xf -)
+if test "${withcvs}" = "true"; then
+  # the original code that untars the 'archive' in /usr/share/gettext
+  # and detects local modifications
+  # the result is a copy of m4,po,intl,ABOUT_NLS and config.rpath
+  # this files are available in the /usr/share/gettext directory
+  # and the cvs is only needed when a translator modifies the files
+  cvs -d "$CVSROOT" init
+  gzip -d -c < "$gettext_dir/archive.tar.gz" | (cd "$cvs_dir" && tar xf -)
 
-cd "$work_dir"
-cvsver=gettext-`echo "$ver" | sed -e 's/\./_/g'`
-(cvs checkout -r"$cvsver" archive > /dev/null) 2>&1 | grep -v '^cvs checkout: Updating'
-find archive -name CVS -type d -print | xargs rm -rf
-# Check that really all CVS directories are gone, otherwise we would overwrite
-# the contents of the user's CVS directories.
-if test `find archive -name CVS -type d -print | wc -l` != 0; then
-  cd ..
-  rm -rf "$cvs_dir" "$work_dir"
-  func_fatal_error "failed to remove all CVS subdirectories"
-fi
-if test `find archive -type f -print | wc -l` = 0; then
-  cd ..
-  rm -rf "$cvs_dir" "$work_dir"
-  func_fatal_error "infrastructure files for version $ver not found; this is autopoint from GNU $package $version"
+  cd "$work_dir"
+  cvsver=gettext-`echo "$ver" | sed -e 's/\./_/g'`
+  (cvs checkout -r"$cvsver" archive > /dev/null) 2>&1 | grep -v '^cvs checkout: Updating'
+  find archive -name CVS -type d -print | xargs rm -rf
+  # Check that really all CVS directories are gone, otherwise we would overwrite
+  # the contents of the user's CVS directories.
+  if test `find archive -name CVS -type d -print | wc -l` != 0; then
+    cd ..
+    rm -rf "$cvs_dir" "$work_dir"
+    func_fatal_error "failed to remove all CVS subdirectories"
+  fi
+  if test `find archive -type f -print | wc -l` = 0; then
+    cd ..
+    rm -rf "$cvs_dir" "$work_dir"
+    func_fatal_error "infrastructure files for version $ver not found; this is autopoint from GNU $package $version"
+  fi
+else
+  # workarround for missing cvs
+  # does overwrite any development changes, but as we checked out from git this might be ok
+  cd "$work_dir"
+  mkdir archive
+  cp -r ${gettext_dir}/* ./archive
 fi
 cd ..
 
