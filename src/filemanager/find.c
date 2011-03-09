@@ -96,6 +96,7 @@ typedef struct
     gboolean file_pattern;
     gboolean find_recurs;
     gboolean skip_hidden;
+    gboolean only_directories;
     gboolean file_all_charsets;
 
     /* file content options */
@@ -137,6 +138,7 @@ static WCheck *file_case_sens_cbox;     /* "case sensitive" checkbox */
 static WCheck *file_pattern_cbox;       /* File name is glob or regexp */
 static WCheck *recursively_cbox;
 static WCheck *skip_hidden_cbox;
+static WCheck *only_directories_cbox;
 static WCheck *content_use_cbox;        /* Take into account the Content field */
 static WCheck *content_case_sens_cbox;  /* "case sensitive" checkbox */
 static WCheck *content_regexp_cbox;     /* "find regular expression" checkbox */
@@ -279,6 +281,8 @@ find_load_options (void)
     options.find_recurs = mc_config_get_bool (mc_main_config, "FindFile", "file_find_recurs", TRUE);
     options.skip_hidden =
         mc_config_get_bool (mc_main_config, "FindFile", "file_skip_hidden", FALSE);
+    options.only_directories =
+        mc_config_get_bool (mc_main_config, "FindFile", "file_only_directories", FALSE);
     options.file_all_charsets =
         mc_config_get_bool (mc_main_config, "FindFile", "file_all_charsets", FALSE);
     options.content_use = mc_config_get_bool (mc_main_config, "FindFile", "content_use", TRUE);
@@ -312,6 +316,7 @@ find_save_options (void)
     mc_config_set_bool (mc_main_config, "FindFile", "file_shell_pattern", options.file_pattern);
     mc_config_set_bool (mc_main_config, "FindFile", "file_find_recurs", options.find_recurs);
     mc_config_set_bool (mc_main_config, "FindFile", "file_skip_hidden", options.skip_hidden);
+    mc_config_set_bool (mc_main_config, "FindFile", "file_only_directories", options.only_directories);
     mc_config_set_bool (mc_main_config, "FindFile", "file_all_charsets", options.file_all_charsets);
     mc_config_set_bool (mc_main_config, "FindFile", "content_use", options.content_use);
     mc_config_set_bool (mc_main_config, "FindFile", "content_case_sens", options.content_case_sens);
@@ -484,6 +489,7 @@ find_parameters (char **start_dir, ssize_t * start_dir_len,
     const char *file_pattern_label = N_("&Using shell patterns");
     const char *file_recurs_label = N_("&Find recursively");
     const char *file_skip_hidden_label = N_("S&kip hidden");
+    const char *file_only_directories_label = N_("Only &directories");
 #ifdef HAVE_CHARSET
     const char *file_all_charsets_label = N_("&All charsets");
 #endif
@@ -515,6 +521,7 @@ find_parameters (char **start_dir, ssize_t * start_dir_len,
         file_pattern_label = _(file_pattern_label);
         file_recurs_label = _(file_recurs_label);
         file_skip_hidden_label = _(file_skip_hidden_label);
+	file_only_directories_label = _(file_only_directories_label);
 #ifdef HAVE_CHARSET
         file_all_charsets_label = _(file_all_charsets_label);
         content_all_charsets_label = _(content_all_charsets_label);
@@ -581,7 +588,10 @@ find_parameters (char **start_dir, ssize_t * start_dir_len,
     widget_disable (WIDGET (content_regexp_cbox), disable);
     add_widget (find_dlg, content_regexp_cbox);
 
-    cbox_position = FIND_Y - 6;
+    cbox_position = FIND_Y - 5;
+
+    only_directories_cbox = check_new (cbox_position--, 3, options.only_directories, file_only_directories_label);
+    add_widget (find_dlg, only_directories_cbox);
 
     skip_hidden_cbox = check_new (cbox_position--, 3, options.skip_hidden, file_skip_hidden_label);
     add_widget (find_dlg, skip_hidden_cbox);
@@ -687,6 +697,7 @@ find_parameters (char **start_dir, ssize_t * start_dir_len,
             options.file_pattern = file_pattern_cbox->state & C_BOOL;
             options.file_case_sens = file_case_sens_cbox->state & C_BOOL;
             options.skip_hidden = skip_hidden_cbox->state & C_BOOL;
+            options.only_directories = only_directories_cbox->state & C_BOOL;
             options.ignore_dirs_enable = ignore_dirs_cbox->state & C_BOOL;
             g_free (options.ignore_dirs);
             options.ignore_dirs = g_strdup (in_ignore->buffer);
@@ -1256,6 +1267,9 @@ do_search (Dlg_head * h)
         if (!(options.skip_hidden && (dp->d_name[0] == '.')))
         {
             gboolean search_ok;
+	    gboolean is_dir;
+
+	    is_dir = FALSE;
 
             if ((subdirs_left != 0) && options.find_recurs && (directory != NULL))
             {                   /* Can directory be NULL ? */
@@ -1270,6 +1284,7 @@ do_search (Dlg_head * h)
 
                     if (mc_lstat (tmp_vpath, &tmp_stat) == 0 && S_ISDIR (tmp_stat.st_mode))
                     {
+			is_dir = TRUE;
                         push_directory (tmp_vpath);
                         subdirs_left--;
                     }
@@ -1281,7 +1296,7 @@ do_search (Dlg_head * h)
             search_ok = mc_search_run (search_file_handle, dp->d_name,
                                        0, strlen (dp->d_name), &bytes_found);
 
-            if (search_ok)
+            if (search_ok && (!options.only_directories || is_dir))
             {
                 if (content_pattern == NULL)
                     find_add_match (directory, dp->d_name);
