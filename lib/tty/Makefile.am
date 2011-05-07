@@ -26,11 +26,4 @@ AM_CPPFLAGS = \
 	-DDATADIR=\""$(pkgdatadir)/"\" \
 	-DLOCALEDIR=\""$(localedir)"\"
 
-AM_CFLAGS = -I$(top_srcdir)
-
-if HAVE_GMODULE
-AM_CFLAGS += $(GMODULE_CFLAGS)
-else
-AM_CFLAGS += $(GLIB_CFLAGS)
-endif
-
+AM_CFLAGS = -I$(top_srcdir) $(GLIB_CFLAGS)

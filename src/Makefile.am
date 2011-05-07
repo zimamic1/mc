@@ -21,6 +21,7 @@ endif
 
 AM_CFLAGS = -I$(top_srcdir) $(GLIB_CFLAGS) $(PCRE_CFLAGS)
 
+
 localedir = $(datadir)/locale
 pkglibexecdir = $(libexecdir)/@PACKAGE@
 
@@ -39,7 +40,9 @@ mc_LDADD = \
 	viewer/libmcviewer.la \
 	filemanager/libmcfilemanager.la \
 	$(DIFFLIB) $(EDITLIB) \
-	$(top_builddir)/lib/libmc.la
+	$(top_builddir)/lib/libmc.la \
+	$(GLIB_LIBS) \
+	$(PCRE_LIBS)
 
 if ENABLE_VFS_SMB
 # this is a hack for linking with own samba library in simple way

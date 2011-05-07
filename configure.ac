@@ -51,7 +51,6 @@ DX_INIT_DOXYGEN(mc,doxygen.cfg,devel)
 dnl PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
 
 AC_CHECK_GLIB
-AC_G_MODULE_SUPPORTED
 
 AC_ARG_ENABLE([mclib],
         [AS_HELP_STRING([--enable-mclib], [Compile shared library libmc.so @<:@no@:>@])],
@@ -246,7 +245,8 @@ linux*)
                 [AC_MSG_ERROR([libgpm is missing or older than 0.18])]
             else
                 [AC_MSG_WARN([libgpm is missing or older than 0.18])]
-            fi
+            fi,
+            -ltinfo
 	)
     fi
     ;;
