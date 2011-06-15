@@ -38,8 +38,7 @@ mc_LDADD = \
 	$(top_builddir)/lib/libmc.la
 
 if ENABLE_VFS_SMB
-# this is a hack for linking with own samba library in simple way
-mc_LDADD += vfs/smbfs/helpers/libsamba.a
+mc_LDADD += -lsmbclient
 endif
 
 SRC_mc_conssaver = \

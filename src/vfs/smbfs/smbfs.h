@@ -22,12 +22,9 @@ typedef struct smb_authinfo
     char *password;
 } smb_authinfo;
 
-
 /*** global variables defined in .c file *********************************************************/
 
 /*** declarations of public functions ************************************************************/
-
-
 
 void init_smbfs (void);
 void smbfs_set_debug (int arg);
@@ -42,4 +39,5 @@ smb_authinfo *vfs_smb_get_authinfo (const char *host,
                                     const char *share, const char *domain, const char *user);
 
 /*** inline functions ****************************************************************************/
+
 #endif /* MC_VFS_SMBFS_H */

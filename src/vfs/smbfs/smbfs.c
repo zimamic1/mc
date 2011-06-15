@@ -32,33 +32,21 @@
 
 #include <config.h>
 
+#include <errno.h>
 #include <stdio.h>
 #include <sys/types.h>
-
-#undef USE_NCURSES              /* Don't include *curses.h */
-#undef USE_NCURSESW
-
 #include <string.h>
+#include <netinet/in.h>         /* struct in_addr */
+#ifdef HAVE_ARPA_INET_H
+#include <arpa/inet.h>
+#endif
+
+#include <libsmbclient.h>
 
 #include "lib/global.h"
 #include "lib/strutil.h"
 #include "lib/util.h"
 #include "lib/widget.h"         /* message() */
-
-#undef  PACKAGE_BUGREPORT
-#undef  PACKAGE_NAME
-#undef  PACKAGE_STRING
-#undef  PACKAGE_TARNAME
-#undef  PACKAGE_VERSION
-
-#include "helpers/include/config.h"
-/* don't load crap in "samba/include/includes.h" we don't use and which 
-   conflicts with definitions in other includes */
-#undef HAVE_LIBREADLINE
-#define NO_CONFIG_H
-#undef VERSION
-
-#include "helpers/include/includes.h"
 
 #include "lib/vfs/vfs.h"
 #include "lib/vfs/netutil.h"
@@ -68,7 +56,6 @@
 
 /*** global variables ****************************************************************************/
 
-extern int DEBUGLEVEL;
 extern pstring myhostname;
 extern struct in_addr ipzero;
 extern pstring global_myname;
@@ -161,6 +148,8 @@ static gboolean first_direntry;
 
 /* stat a single file, smbfs_get_remote_stat callback  */
 static dir_entry *single_entry;
+
+static int smb_debug_level = 0;
 
 /*** file scope functions ************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
@@ -341,31 +330,7 @@ smbfs_bucket_set_authinfo (smbfs_connection * bucket,
     return 0;
 }
 
-/* --------------------------------------------------------------------------------------------- */
 
-void
-smbfs_set_debug (int arg)
-{
-    DEBUGLEVEL = arg;
-}
-
-/* --------------------------------------------------------------------------------------------- */
-
-void
-smbfs_set_debugf (const char *filename)
-{
-    if (DEBUGLEVEL > 0)
-    {
-        FILE *outfile = fopen (filename, "w");
-        if (outfile)
-        {
-            setup_logging ("", True);   /* No needs for timestamp for each message */
-            dbf = outfile;
-            setbuf (dbf, NULL);
-            pstrcpy (debugf, filename);
-        }
-    }
-}
 
 /* --------------------------------------------------------------------------------------------- */
 /********************** The callbacks ******************************/
@@ -2172,6 +2137,37 @@ smbfs_fstat (void *data, struct stat *buf)
 /*** public functions ****************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
 
+void
+smbfs_set_debug (int arg)
+{
+    if (arg < 0 || arg > 100)
+        arg = 0;
+
+    smb_debug_level = arg;
+}
+
+/* --------------------------------------------------------------------------------------------- */
+
+void
+smbfs_set_debugf (const char *filename)
+{
+    if (smb_debug_level > 0)
+    {
+        FILE *outfile;
+
+        outfile = fopen (filename, "w");
+        if (outfile != NULL)
+        {
+            setup_logging ("", TRUE);   /* No needs for timestamp for each message */
+            dbf = outfile;
+            setbuf (dbf, NULL);
+            pstrcpy (debugf, filename);
+        }
+    }
+}
+
+/* --------------------------------------------------------------------------------------------- */
+
 smb_authinfo *
 vfs_smb_authinfo_new (const char *host, const char *share, const char *domain,
                       const char *user, const char *pass)
@@ -2232,5 +2228,3 @@ init_smbfs (void)
     vfs_smbfs_ops.setctl = smbfs_setctl;
     vfs_register_class (&vfs_smbfs_ops);
 }
-
-/* --------------------------------------------------------------------------------------------- */
