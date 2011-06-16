@@ -56,10 +56,10 @@
 
 /*** global variables ****************************************************************************/
 
-extern pstring myhostname;
+extern char myhostname[BUF_1K];
 extern struct in_addr ipzero;
-extern pstring global_myname;
-extern pstring debugf;
+extern char global_myname[BUF_1K];
+extern char debugf[BUF_1K];
 extern FILE *dbf;
 
 /*** file scope macro definitions ****************************************************************/
@@ -68,8 +68,8 @@ extern FILE *dbf;
 
 #define HEADER_LEN      6
 
-#define CNV_LANG(s) dos_to_unix(s,False)
-#define GNAL_VNC(s) unix_to_dos(s,False)
+#define CNV_LANG(s) dos_to_unix(s,FALSE)
+#define GNAL_VNC(s) unix_to_dos(s,FALSE)
 
 #define smbfs_lstat smbfs_stat  /* no symlinks on smb filesystem? */
 
@@ -82,7 +82,7 @@ typedef struct
     struct cli_state *cli;
     int fnum;
     off_t nread;
-    uint16 attr;
+    unsigned int attr;
 } smbfs_handle;
 
 typedef struct dir_entry
@@ -109,7 +109,7 @@ static const char *const IPC = "IPC$";
 static const char *const URL_HEADER = "smb" VFS_PATH_URL_DELIMITER;
 
 static int my_errno;
-static uint32 err;
+static unsigned int err;
 
 /* stuff that is same with each connection */
 
@@ -117,15 +117,15 @@ static mode_t myumask = 0755;
 static int smbfs_open_connections = 0;
 static gboolean got_user = FALSE;
 static gboolean got_pass = FALSE;
-static pstring password;
-static pstring username;
+static char password[BUF_1K];
+static char username[BUF_1K];
 static struct vfs_class vfs_smbfs_ops;
 
 static struct _smbfs_connection
 {
     struct cli_state *cli;
     struct in_addr dest_ip;
-    BOOL have_ip;
+    gboolean have_ip;
     char *host;                 /* server name */
     char *service;              /* share name */
     char *domain;
@@ -350,7 +350,7 @@ smbfs_init (struct vfs_class *me)
     if (!get_myname (myhostname, NULL))
         DEBUG (0, ("Failed to get my hostname.\n"));
 
-    if (!lp_load (servicesf, True, False, False))
+    if (!lp_load (servicesf, TRUE, FALSE, FALSE))
         DEBUG (0, ("Cannot load %s - run testparm to debug it\n", servicesf));
 
     codepage_initialise (lp_client_code_page ());
@@ -365,13 +365,13 @@ smbfs_init (struct vfs_class *me)
     {
         char *p;
 
-        pstrcpy (username, getenv ("USER"));
+        g_strlcpy (username, getenv ("USER"), sizeof (username));
         got_user = TRUE;
         DEBUG (3, ("smbfs_init(): $USER:%s\n", username));
         if ((p = strchr (username, '%')))
         {
             *p = 0;
-            pstrcpy (password, p + 1);
+            g_strlcpy (password, p + 1, sizeof (password));
             got_pass = TRUE;
             memset (strchr (getenv ("USER"), '%') + 1, 'X', strlen (password));
             DEBUG (3, ("smbfs_init(): $USER%%pass: %s%%%s\n", username, password));
@@ -380,7 +380,7 @@ smbfs_init (struct vfs_class *me)
     }
     if (getenv ("PASSWD"))
     {
-        pstrcpy (password, getenv ("PASSWD"));
+        g_strlcpy (password, getenv ("PASSWD"), sizeof (password));
         got_pass = TRUE;
     }
     return 1;
@@ -463,10 +463,10 @@ smbfs_close (void *data)
     /* if imlementing archive_level:    add rname to smbfs_handle */
     if (archive_level >= 2 && (inf->attr & aARCH))
     {
-        cli_setatr (info->cli, rname, info->attr & ~(uint16) aARCH, 0);
+        cli_setatr (info->cli, rname, info->attr & ~((unsigned int) aARCH), 0);
     }
 #endif
-    return (cli_close (info->cli, info->fnum) == True) ? 0 : -1;
+    return cli_close (info->cli, info->fnum) ? 0 : -1;
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -509,7 +509,7 @@ smbfs_new_dir_entry (const char *name)
 /* browse for shares on server */
 
 static void
-smbfs_browsing_helper (const char *name, uint32 type, const char *comment, void *state)
+smbfs_browsing_helper (const char *name, unsigned int type, const char *comment, void *state)
 {
     const char *typestr = "";
     dir_entry *new_entry = smbfs_new_dir_entry (name);
@@ -618,7 +618,7 @@ smbfs_convert_path (const char *remote_file, gboolean trailing_asterik)
 /* --------------------------------------------------------------------------------------------- */
 
 static void
-smbfs_srv_browsing_helper (const char *name, uint32 m, const char *comment, void *state)
+smbfs_srv_browsing_helper (const char *name, unsigned int m, const char *comment, void *state)
 {
     dir_entry *new_entry = smbfs_new_dir_entry (name);
 
@@ -634,7 +634,7 @@ smbfs_srv_browsing_helper (const char *name, uint32 m, const char *comment, void
 
 /* --------------------------------------------------------------------------------------------- */
 
-static BOOL
+static gboolean
 smbfs_reconnect (smbfs_connection * conn, int *retries)
 {
     char *host;
@@ -651,17 +651,17 @@ smbfs_reconnect (smbfs_connection * conn, int *retries)
     {
         message (D_ERROR, MSG_ERROR, _("reconnect to %s failed"), conn->host);
         g_free (host);
-        return False;
+        return FALSE;
     }
     g_free (host);
     if (++(*retries) == 2)
-        return False;
-    return True;
+        return FALSE;
+    return TRUE;
 }
 
 /* --------------------------------------------------------------------------------------------- */
 
-static BOOL
+static gboolean
 smbfs_send (struct cli_state *cli)
 {
     size_t len;
@@ -676,13 +676,13 @@ smbfs_send (struct cli_state *cli)
         if (ret <= 0)
         {
             if (errno == EPIPE)
-                return False;
+                return FALSE;
         }
         else
             nwritten += ret;
     }
 
-    return True;
+    return TRUE;
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -691,8 +691,8 @@ See if server has cut us off by checking for EPIPE when writing.
 Taken from cli_chkpath()
 ****************************************************************************/
 
-static BOOL
-smbfs_chkpath (struct cli_state *cli, const char *path, BOOL send_only)
+static gboolean
+smbfs_chkpath (struct cli_state *cli, const char *path, gboolean send_only)
 {
     fstring path2;
     char *p;
@@ -704,7 +704,7 @@ smbfs_chkpath (struct cli_state *cli, const char *path, BOOL send_only)
         *path2 = '\\';
 
     memset (cli->outbuf, '\0', smb_size);
-    set_message (cli->outbuf, 0, 4 + strlen (path2), True);
+    set_message (cli->outbuf, 0, 4 + strlen (path2), TRUE);
     SCVAL (cli->outbuf, smb_com, SMBchkpth);
     SSVAL (cli->outbuf, smb_tid, cli->cnum);
 
@@ -726,28 +726,28 @@ smbfs_chkpath (struct cli_state *cli, const char *path, BOOL send_only)
     if (!smbfs_send (cli))
     {
         DEBUG (3, ("smbfs_chkpath: couldnt send\n"));
-        return False;
+        return FALSE;
     }
     if (send_only)
     {
         client_receive_smb (cli->fd, cli->inbuf, cli->timeout);
         DEBUG (3, ("smbfs_chkpath: send only OK\n"));
-        return True;            /* just testing for EPIPE */
+        return TRUE;            /* just testing for EPIPE */
     }
     if (!client_receive_smb (cli->fd, cli->inbuf, cli->timeout))
     {
         DEBUG (3, ("smbfs_chkpath: receive error\n"));
-        return False;
+        return FALSE;
     }
     if ((my_errno = cli_error (cli, NULL, NULL, NULL)))
     {
         if (my_errno == 20 || my_errno == 13)
-            return True;        /* ignore if 'not a directory' error */
+            return TRUE;        /* ignore if 'not a directory' error */
         DEBUG (3, ("smbfs_chkpath: cli_error: %s\n", unix_error_string (my_errno)));
-        return False;
+        return FALSE;
     }
 
-    return True;
+    return TRUE;
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -775,7 +775,7 @@ smbfs_fs (const char *text)
 static int
 smbfs_loaddir (opendir_info * smbfs_info)
 {
-    uint16 attribute = aDIR | aSYSTEM | aHIDDEN;
+    unsigned int attribute = aDIR | aSYSTEM | aHIDDEN;
     int servlen = strlen (smbfs_info->conn->service);
     const char *info_dirname = smbfs_info->dirname;
     char *my_dirname;
@@ -1104,14 +1104,14 @@ smbfs_get_master_browser (char **host)
 
     /* does port = 137 for win95 master browser? */
     int fd = open_socket_in (SOCK_DGRAM, 0, 3,
-                             interpret_addr (lp_socket_address ()), True);
+                             interpret_addr (lp_socket_address ()), TRUE);
     if (fd == -1)
         return 0;
     set_socket_options (fd, so_broadcast);
     ip_list = iface_bcast (ipzero);
     bcast_addr = *ip_list;
-    if ((ip_list = name_query (fd, "\01\02__MSBROWSE__\02", 1, True,
-                               True, bcast_addr, &count, NULL)))
+    if ((ip_list = name_query (fd, "\01\02__MSBROWSE__\02", 1, TRUE,
+                               TRUE, bcast_addr, &count, NULL)))
     {
         if (!count)
             return 0;
@@ -1177,26 +1177,26 @@ smbfs_open_link (char *host, char *path, const char *user, int *port, char *this
 {
     int i;
     smbfs_connection *bucket;
-    pstring service;
+    char service[BUF_1K];
     struct in_addr *dest_ip = NULL;
 
     DEBUG (3, ("smbfs_open_link(host:%s, path:%s)\n", host, path));
 
     if (strcmp (host, path) == 0)       /* if host & path are same: */
-        pstrcpy (service, IPC); /* setup for browse */
+        g_strlcpy (service, IPC, sizeof (service)); /* setup for browse */
     else
     {                           /* get share name from path, path starts with server name */
         char *p;
         if ((p = strchr (path, '/')))   /* get share aka                            */
-            pstrcpy (service, ++p);     /* service name from path               */
+            g_strlcpy (service, ++p, sizeof (service));     /* service name from path */
         else
-            pstrcpy (service, "");
+            service[0] = '\0' ;
         /* now check for trailing directory/filenames   */
         p = strchr (service, '/');
         if (p)
             *p = 0;             /* cut off dir/files: sharename only */
         if (!*service)
-            pstrcpy (service, IPC);     /* setup for browse */
+            g_strlcpy (service, IPC, sizeof (service));     /* setup for browse */
         DEBUG (6, ("smbfs_open_link: service from path:%s\n", service));
     }
 
@@ -1213,7 +1213,7 @@ smbfs_open_link (char *host, char *path, const char *user, int *port, char *this
             (strcmp (service, smbfs_connections[i].service) == 0))
         {
             int retries = 0;
-            BOOL inshare = (*host != 0 && *path != 0 && strchr (path, '/'));
+            gboolean inshare = (*host != 0 && *path != 0 && strchr (path, '/'));
             /* check if this connection has died */
             while (!smbfs_chkpath (smbfs_connections[i].cli, "\\", !inshare))
             {
@@ -1235,10 +1235,10 @@ smbfs_open_link (char *host, char *path, const char *user, int *port, char *this
     bucket->name_type = 0x20;
     bucket->home = 0;
     bucket->port = *port;
-    bucket->have_ip = False;
+    bucket->have_ip = FALSE;
     if (dest_ip)
     {
-        bucket->have_ip = True;
+        bucket->have_ip = TRUE;
         bucket->dest_ip = *dest_ip;
     }
     current_bucket = bucket;
@@ -1390,7 +1390,7 @@ smbfs_fake_server_stat (const char *server_url, const char *path, struct stat *b
             return -1;
     }
 
-    if (current_info->server_list == True)
+    if (current_info->server_list)
     {
         dentry = current_info->entries;
         DEBUG (4, ("fake stat for SERVER \"%s\"\n", path));
@@ -1475,7 +1475,7 @@ smbfs_fake_share_stat (const char *server_url, const char *path, struct stat *bu
 static int
 smbfs_get_remote_stat (smbfs_connection * sc, const char *path, struct stat *buf)
 {
-    uint16 attribute = aDIR | aSYSTEM | aHIDDEN;
+    unsigned int attribute = aDIR | aSYSTEM | aHIDDEN;
     char *mypath;
 
     DEBUG (3, ("smbfs_get_remote_stat(): mypath:%s\n", path));
@@ -1670,7 +1670,7 @@ static int
 smbfs_stat (const vfs_path_t * vpath, struct stat *buf)
 {
     smbfs_connection *sc;
-    pstring server_url;
+    char server_url[BUF_1K];
     char *service, *pp, *at;
     const char *p;
     vfs_path_element_t *path_element = vfs_path_get_by_index (vpath, -1);
@@ -1698,7 +1698,7 @@ smbfs_stat (const vfs_path_t * vpath, struct stat *buf)
 
     pp = strchr (p, '/');       /* advance past next '/' */
     at = strchr (p, '@');
-    pstrcpy (server_url, URL_HEADER);
+    g_strlcpy (server_url, URL_HEADER, sizeof (server_url));
     if (at && at < pp)
     {                           /* user@server */
         char *z = &(server_url[sizeof (server_url) - 1]);
@@ -1712,7 +1712,7 @@ smbfs_stat (const vfs_path_t * vpath, struct stat *buf)
             *at++ = *s++;
         *z = 0;
     }
-    pstrcat (server_url, current_bucket->host);
+    g_strlcat (server_url, current_bucket->host, sizeof (server_url));
 
     if (!pp)
     {
@@ -2161,7 +2161,7 @@ smbfs_set_debugf (const char *filename)
             setup_logging ("", TRUE);   /* No needs for timestamp for each message */
             dbf = outfile;
             setbuf (dbf, NULL);
-            pstrcpy (debugf, filename);
+            g_strlcpy (debugf, filename, sizeof (debugf));
         }
     }
 }
