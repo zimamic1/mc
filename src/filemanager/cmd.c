@@ -1456,8 +1456,10 @@ fishlink_cmd (void)
 void
 smblink_cmd (void)
 {
-    nice_cd (_("SMB link to machine"), _(machine_str),
-             "[SMB File System]", ":smblink_cmd: SMB link to machine ", "/#smb:", 0);
+    const char *cd_path = "smb://";
+
+    if (!do_panel_cd (MENU_PANEL, cd_path, cd_parse_command))
+        message (D_ERROR, MSG_ERROR, _("Cannot chdir to \"%s\""), cd_path);
 }
 #endif /* ENABLE_VFS_SMB */
 #endif /* ENABLE_VFS_NET */
