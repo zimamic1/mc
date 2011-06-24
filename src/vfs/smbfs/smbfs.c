@@ -27,7 +27,7 @@
  * \author Andrew V. Samoilov <sav@bcs.zp.ua>
  * \date 1997, 2002, 2003
  *
- * Namespace: exports init_smbfs, smbfs_set_debug(), smbfs_set_debugf()
+ * Namespace: exports init_smbfs, smbfs_set_debug()
  */
 
 #include <config.h>
@@ -156,6 +156,27 @@ static int smb_debug_level = 0;
 
 /* modifies *share */
 static struct cli_state *smbfs_do_connect (const char *server, char *share);
+
+/* --------------------------------------------------------------------------------------------- */
+
+static void
+smbfs_set_debugf (const char *filename)
+{
+    if (smb_debug_level > 0)
+    {
+        FILE *outfile;
+
+        outfile = fopen (filename, "w");
+        if (outfile != NULL)
+        {
+            setup_logging ("", TRUE);   /* No needs for timestamp for each message */
+            dbf = outfile;
+            setbuf (dbf, NULL);
+            g_strlcpy (debugf, filename, sizeof (debugf));
+        }
+    }
+}
+
 
 /* --------------------------------------------------------------------------------------------- */
 /* this function allows you to write:
@@ -1956,14 +1977,17 @@ static int
 smbfs_setctl (const vfs_path_t * vpath, int ctlop, void *arg)
 {
     vfs_path_element_t *path_element = vfs_path_get_by_index (vpath, -1);
-    (void) arg;
 
     DEBUG (3, ("smbfs_setctl(path:%s, ctlop:%d)\n", path_element->path, ctlop));
+
     switch (ctlop)
     {
+    case VFS_SETCTL_LOGFILE:
+        smbfs_set_debugf ((char *) arg);
+        break;
     case VFS_SETCTL_FORGET:
         smbfs_forget (path_element->path);
-        return 0;
+        break;
     }
     return 0;
 }
@@ -2144,26 +2168,6 @@ smbfs_set_debug (int arg)
         arg = 0;
 
     smb_debug_level = arg;
-}
-
-/* --------------------------------------------------------------------------------------------- */
-
-void
-smbfs_set_debugf (const char *filename)
-{
-    if (smb_debug_level > 0)
-    {
-        FILE *outfile;
-
-        outfile = fopen (filename, "w");
-        if (outfile != NULL)
-        {
-            setup_logging ("", TRUE);   /* No needs for timestamp for each message */
-            dbf = outfile;
-            setbuf (dbf, NULL);
-            g_strlcpy (debugf, filename, sizeof (debugf));
-        }
-    }
 }
 
 /* --------------------------------------------------------------------------------------------- */

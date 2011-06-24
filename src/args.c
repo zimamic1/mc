@@ -36,7 +36,7 @@
 #include "lib/util.h"           /* x_basename() */
 
 #ifdef ENABLE_VFS_SMB
-#include "src/vfs/smbfs/smbfs.h"        /* smbfs_set_debugf()  */
+#include "src/vfs/smbfs/smbfs.h"        /* smbfs_set_debug()  */
 #endif
 
 #include "src/main.h"
@@ -413,20 +413,20 @@ mc_setup_by_args (int argc, char *argv[])
     if (mc_args__nomouse)
         use_mouse_p = MOUSE_DISABLED;
 
+#ifdef ENABLE_VFS_SMB
+    if (mc_args__debug_level != 0)
+        smbfs_set_debug (mc_args__debug_level);
+#endif /* ENABLE_VFS_SMB */
+
     if (mc_args__netfs_logfile != NULL)
     {
 #ifdef ENABLE_VFS_FTP
         mc_setctl ("/#ftp:", VFS_SETCTL_LOGFILE, (void *) mc_args__netfs_logfile);
 #endif /* ENABLE_VFS_FTP */
 #ifdef ENABLE_VFS_SMB
-        smbfs_set_debugf (mc_args__netfs_logfile);
+        mc_setctl ("/#smb:", VFS_SETCTL_LOGFILE, (void *) mc_args__netfs_logfile);
 #endif /* ENABLE_VFS_SMB */
     }
-
-#ifdef ENABLE_VFS_SMB
-    if (mc_args__debug_level != 0)
-        smbfs_set_debug (mc_args__debug_level);
-#endif /* ENABLE_VFS_SMB */
 
     base = x_basename (argv[0]);
     tmp = (argc > 0) ? argv[1] : NULL;
