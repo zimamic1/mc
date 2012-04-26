@@ -281,6 +281,11 @@ static name_keymap_t command_names[] = {
     {"MacroStartStopRecord", CK_MacroStartStopRecord},
     {"MacroDelete", CK_MacroDelete},
     {"RepeatStartStopRecord", CK_RepeatStartStopRecord},
+#ifdef HAVE_ASPELL
+    {"SpellCheck", CK_SpellCheck},
+    {"SpellCheckCurrentWord", CK_SpellCheckCurrentWord},
+    {"SpellCheckSelectLang", CK_SpellCheckSelectLang},
+#endif /* HAVE_ASPELL */
     {"BookmarkFlush", CK_BookmarkFlush},
     {"BookmarkNext", CK_BookmarkNext},
     {"BookmarkPrev", CK_BookmarkPrev},

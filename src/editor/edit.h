@@ -13,6 +13,8 @@
 #ifndef MC__EDIT_H
 #define MC__EDIT_H
 
+#include <config.h>
+
 #include "lib/global.h"         /* PATH_SEP_STR */
 #include "lib/fileloc.h"
 

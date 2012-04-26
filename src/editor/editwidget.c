@@ -63,6 +63,9 @@
 
 #include "edit-impl.h"
 #include "editwidget.h"
+#ifdef HAVE_ASPELL
+#include "spell.h"
+#endif
 
 /*** global variables ****************************************************************************/
 
@@ -890,6 +893,9 @@ edit_dialog_callback (Dlg_head * h, Widget * sender, dlg_msg_t msg, int parm, vo
     {
     case DLG_INIT:
         edit_dlg_init ();
+#ifdef HAVE_ASPELL
+        aspell_init ();
+#endif
         return MSG_HANDLED;
 
     case DLG_DRAW:
@@ -968,8 +974,10 @@ edit_dialog_callback (Dlg_head * h, Widget * sender, dlg_msg_t msg, int parm, vo
 
     case DLG_END:
         edit_dlg_deinit ();
+#ifdef HAVE_ASPELL
+        aspell_clean ();
+#endif
         return MSG_HANDLED;
-
     default:
         return default_dlg_callback (h, sender, msg, parm, data);
     }

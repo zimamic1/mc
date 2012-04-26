@@ -337,6 +337,7 @@ RepeatStartStopRecord =
 SelectCodepage = alt-e
 Options =
 OptionsSaveMode =
+SpellCheckCurrentWord =
 LearnKeys =
 WindowMove =
 WindowResize =
