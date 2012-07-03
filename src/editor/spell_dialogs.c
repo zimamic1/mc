@@ -25,11 +25,6 @@
 
 #include <config.h>
 
-#include <stdlib.h>
-#include <string.h>
-#include <gmodule.h>
-#include <aspell.h>
-
 #include "editwidget.h"
 
 #ifdef HAVE_ASPELL
@@ -86,8 +81,6 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
     max_btn_len = max (replace_len, skip_len);
     max_btn_len = max (max_btn_len, cancel_len);
     sug_dlg_w += max_btn_len;
-
-    mc_log ("max_len [%i]\n", max_btn_len);
 
     /* create the dialog */
     sug_dlg = create_dlg (TRUE, ypos, xpos, sug_dlg_h, sug_dlg_w,
