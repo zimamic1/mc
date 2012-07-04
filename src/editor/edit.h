@@ -7,16 +7,15 @@
  *  \author Paul Sheer
  *  \date 1996, 1997
  *  \author Andrew Borodin
- *  \date 2009
+ *  \date 2009, 2012
  */
 
 #ifndef MC__EDIT_H
 #define MC__EDIT_H
 
-#include <config.h>
-
 #include "lib/global.h"         /* PATH_SEP_STR */
 #include "lib/fileloc.h"
+#include "lib/vfs/vfs.h"        /* vfs_path_t */
 
 /*** typedefs(not structures) and defined constants **********************************************/
 

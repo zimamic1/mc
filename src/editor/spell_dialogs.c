@@ -25,6 +25,9 @@
 
 #include <config.h>
 
+#include "lib/global.h"
+#include "lib/widget.h"
+
 #include "editwidget.h"
 
 #ifdef HAVE_ASPELL
@@ -82,17 +85,13 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
     max_btn_len = max (max_btn_len, cancel_len);
     sug_dlg_w += max_btn_len;
 
-    /* create the dialog */
     sug_dlg = create_dlg (TRUE, ypos, xpos, sug_dlg_h, sug_dlg_w,
                           dialog_colors, NULL, NULL, "[ASpell]", _("Check word"), DLG_COMPACT);
 
-    /* create the listbox */
     sug_list = listbox_new (5, 1, sug_dlg_h - 7, 24, FALSE, NULL);
-    /* fill the listbox with the suggest */
     for (i = 0; i < suggest->len; i++)
-        listbox_add_item (sug_list, LISTBOX_APPEND_AT_END, 0, g_array_index (suggest, char *, i), NULL);
-
-    /* add the dialog */
+        listbox_add_item (sug_list, LISTBOX_APPEND_AT_END, 0, g_array_index (suggest, char *, i),
+                          NULL);
     add_widget (sug_dlg, sug_list);
 
     add_widget (sug_dlg, add_btn);
@@ -107,8 +106,6 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
     add_widget (sug_dlg, label_new (3, 1, word_label));
     add_widget (sug_dlg, groupbox_new (4, 1, sug_dlg_h - 5, 25, _("Suggest")));
 
-
-    /* pop up the dialog and apply the choosen item */
     res = run_dlg (sug_dlg);
     if (res == B_ENTER)
     {
@@ -119,10 +116,11 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
             tmp = g_strdup (curr);
         *new_word = tmp;
     }
-    /* destroy dialog before return */
+
     destroy_dlg (sug_dlg);
     g_free (lang_label);
     g_free (word_label);
+
     return res;
 }
 #endif  /* HAVE_ASPELL */
@@ -147,21 +145,14 @@ editcmd_dialog_lang_list_show (WEdit * edit, GArray *languages)
     xpos = (edit->widget.cols - lang_dlg_w) / 2;
     ypos = (edit->widget.lines - lang_dlg_h) / 2;
 
-    /* create the dialog */
     lang_dlg = create_dlg (TRUE, ypos, xpos, lang_dlg_h, lang_dlg_w,
                           dialog_colors, NULL, NULL, "[ASpell]", _("Select language"), DLG_COMPACT);
 
-    /* create the listbox */
     lang_list = listbox_new (1, 1, lang_dlg_h - 3, lang_dlg_w - 2, FALSE, NULL);
-
-    /* add the dialog */
     add_widget (lang_dlg, lang_list);
-
-    /* fill the listbox with the languages */
     for (i = 0; i < languages->len; i++)
         listbox_add_item (lang_list, LISTBOX_APPEND_AT_END, 0, g_array_index (languages, char *, i), NULL);
 
-    /* pop up the dialog and apply the choosen item */
     if (run_dlg (lang_dlg) == B_ENTER)
     {
         listbox_get_current (lang_list, &curr, NULL);
@@ -169,7 +160,7 @@ editcmd_dialog_lang_list_show (WEdit * edit, GArray *languages)
         if (curr != NULL)
             selected_lang = g_strdup (curr);
     }
-    /* destroy dialog before return */
+
     destroy_dlg (lang_dlg);
 
     return selected_lang;

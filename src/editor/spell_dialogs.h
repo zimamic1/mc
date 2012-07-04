@@ -2,10 +2,6 @@
 #define MC__EDIT_ASPELL_DIALOGS_H
 
 #include "lib/global.h"         /* include <glib.h> */
-#include "lib/widget.h"         /* Widget */
-
-#include "src/editor/edit.h"
-#include "src/editor/spell.h"
 
 /*** typedefs(not structures) and defined constants **********************************************/
 
@@ -20,8 +16,9 @@
 
 /*** declarations of public functions ************************************************************/
 
-int editcmd_dialog_spell_suggest_show (WEdit *, const char *, char **, GArray *);
-char *editcmd_dialog_lang_list_show (WEdit *, GArray *);
+int editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_word,
+                                       GArray *suggest);
+char *editcmd_dialog_lang_list_show (WEdit * edit, GArray *languages);
 
 /*** inline functions ****************************************************************************/
 

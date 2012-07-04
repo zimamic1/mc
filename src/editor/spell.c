@@ -30,14 +30,13 @@
 #include <gmodule.h>
 #include <aspell.h>
 
+#ifdef HAVE_CHARSET
 #include "lib/charsets.h"
+#endif
 #include "lib/strutil.h"
 
-#include "src/main.h"
 #include "edit-impl.h"
-#ifdef HAVE_ASPELL
 #include "spell.h"
-#endif
 
 /*** global variables ****************************************************************************/
 
@@ -270,20 +269,22 @@ spell_available (void)
 /*** public functions ****************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
 
-/** return NULL on fail */
 void
 aspell_init (void)
 {
     AspellCanHaveError *error = NULL;
 
     if (global_speller != NULL)
+    {
         global_speller->refcounter++;
+        return;
+    }
 
     global_speller = g_try_malloc (sizeof (spell_t));
     if (global_speller == NULL)
-        goto done;
+        return;
 
-    global_speller->refcounter = 0;
+    global_speller->refcounter = 1;
 
     if (!spell_available ())
     {
@@ -297,18 +298,14 @@ aspell_init (void)
 
     error = mc_new_aspell_speller (global_speller->config);
 
-    if (mc_aspell_error_number (error) != 0)
+    if (mc_aspell_error_number (error) == 0)
+        global_speller->speller = mc_to_aspell_speller (error);
+    else
     {
         edit_error_dialog (_("Error"), mc_aspell_error_message (error));
         mc_delete_aspell_can_have_error (error);
         g_free (global_speller);
-        goto done;
     }
-
-    global_speller->speller = mc_to_aspell_speller (error);
-
-  done:
-    return;
 }
 
 /* --------------------------------------------------------------------------------------------- */
@@ -319,7 +316,8 @@ aspell_clean (void)
     if (global_speller == NULL)
         return;
 
-    global_speller->refcounter--;
+    if (global_speller->refcounter != 0)
+        global_speller->refcounter--;
 
     if (global_speller->refcounter == 0)
     {
@@ -392,6 +390,7 @@ aspell_array_clean (GArray * array)
 }
 
 /* --------------------------------------------------------------------------------------------- */
+
 /* Return current the language */
 const char *
 aspell_get_lang (void)
@@ -412,9 +411,9 @@ aspell_set_lang (const char *lang)
     {
         int res;
         AspellCanHaveError *error;
-#ifdef HAVE_CHARSET
-        const char *spell_codeset = NULL;
+        const char *spell_codeset;
 
+#ifdef HAVE_CHARSET
         if (mc_global.source_codepage > 0)
             spell_codeset = get_codepage_id (mc_global.source_codepage);
         else

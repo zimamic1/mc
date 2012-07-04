@@ -2004,53 +2004,41 @@ char *
 edit_get_word_from_pos (WEdit *edit, long start_pos, long *start, gsize *len, gsize *cut)
 {
     long word_start;
-    int word_len = 0;
     long cut_len = 0;
-    char match_expr[BUF_SMALL];
-    char *res = NULL;
+    GString *match_expr;
     unsigned char *bufpos;
+    int c1, c2;
 
     for (word_start = start_pos; word_start != 0; word_start--, cut_len++)
     {
-        int c1, c2;
         c1 = edit_get_byte (edit, word_start);
         c2 = edit_get_byte (edit, word_start - 1);
 
-        if ((is_break_char (c1) != is_break_char (c2)) || (c1 == '\n' || c2 == '\n'))
+        if (is_break_char (c1) != is_break_char (c2) || c1 == '\n' || c2 == '\n')
             break;
     }
 
     bufpos = &edit->buffers1[word_start >> S_EDIT_BUF_SIZE][word_start & M_EDIT_BUF_SIZE];
-    match_expr[0] = '\0';
+    match_expr = g_string_sized_new (16);
 
-    for (word_len = 0; word_len < BUF_SMALL; word_len++)
+    do
     {
-        int c1, c2;
-
-        c1 = edit_get_byte (edit, word_start + word_len);
-        c2 = edit_get_byte (edit, word_start + word_len + 1);
-
-        match_expr[word_len] = c1;
-        match_expr[word_len + 1] = '\0';
-
-        if ((is_break_char (c1) != is_break_char (c2)) || (c1 == '\n' || c2 == '\n'))
-        {
-            match_expr[word_len] = c1;
-            word_len++;
-            match_expr[word_len] = '\0';
-            break;
-        }
+        c1 = edit_get_byte (edit, word_start + match_expr->len);
+        c2 = edit_get_byte (edit, word_start + match_expr->len + 1);
+        g_string_append_c (match_expr, c1);
     }
-    res = g_strdup (match_expr);
+    while (!(is_break_char (c1) != is_break_char (c2) || c1 == '\n' || c2 == '\n'));
+
+    *len = match_expr->len;
     *start = word_start;
     *cut = cut_len;
-    *len = word_len;
 
-    return res;
+    return g_string_free (match_expr, FALSE);
 }
 
 /* --------------------------------------------------------------------------------------------- */
 /** inserts a file at the cursor, returns count of inserted bytes on success */
+
 long
 edit_insert_file (WEdit * edit, const vfs_path_t * filename_vpath)
 {
@@ -2789,7 +2777,7 @@ edit_backspace (WEdit * edit, const int byte_delete)
     int cw = 1;
     int i;
 
-    if (!edit->curs1)
+    if (edit->curs1 == 0)
         return 0;
 
     cw = 1;
