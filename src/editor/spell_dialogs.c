@@ -26,6 +26,7 @@
 #include <config.h>
 
 #include "lib/global.h"
+#include "lib/strutil.h"        /* str_term_width1 */
 #include "lib/widget.h"
 
 #include "editwidget.h"
@@ -63,6 +64,7 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
     WButton *replace_btn;
     WButton *skip_btn;
     WButton *cancel_button;
+    int word_label_len;
 
     /* calculate the dialog metrics */
     xpos = (edit->widget.cols - sug_dlg_w) / 2;
@@ -83,12 +85,17 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
 
     max_btn_len = max (replace_len, skip_len);
     max_btn_len = max (max_btn_len, cancel_len);
-    sug_dlg_w += max_btn_len;
 
+    lang_label = g_strdup_printf ("%s: [%s]", _("Lang"), aspell_get_lang ());
+    word_label = g_strdup_printf ("%s: %s", _("Misspelled"), word);
+    word_label_len = (int) str_term_width1 (word_label) + 5;
+
+    sug_dlg_w += max_btn_len;
+    sug_dlg_w = max (sug_dlg_w, word_label_len);
     sug_dlg = create_dlg (TRUE, ypos, xpos, sug_dlg_h, sug_dlg_w,
                           dialog_colors, NULL, NULL, "[ASpell]", _("Check word"), DLG_COMPACT);
 
-    sug_list = listbox_new (5, 1, sug_dlg_h - 7, 24, FALSE, NULL);
+    sug_list = listbox_new (4, 1, sug_dlg_h - 6, 24, FALSE, NULL);
     for (i = 0; i < suggest->len; i++)
         listbox_add_item (sug_list, LISTBOX_APPEND_AT_END, 0, g_array_index (suggest, char *, i),
                           NULL);
@@ -99,12 +106,9 @@ editcmd_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_wo
     add_widget (sug_dlg, skip_btn);
     add_widget (sug_dlg, cancel_button);
 
-    lang_label = g_strdup_printf ("%s: [%s]", _("Lang"), aspell_get_lang ());
-    word_label = g_strdup_printf ("%s: %s", _("Misspelled"), word);
-
     add_widget (sug_dlg, label_new (1, 1, lang_label));
-    add_widget (sug_dlg, label_new (3, 1, word_label));
-    add_widget (sug_dlg, groupbox_new (4, 1, sug_dlg_h - 5, 25, _("Suggest")));
+    add_widget (sug_dlg, label_new (2, 1, word_label));
+    add_widget (sug_dlg, groupbox_new (3, 1, sug_dlg_h - 4, 25, _("Suggest")));
 
     res = run_dlg (sug_dlg);
     if (res == B_ENTER)
