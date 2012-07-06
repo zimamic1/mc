@@ -3581,22 +3581,32 @@ edit_suggest_current_word (WEdit * edit)
     gsize word_len = 0;
     long word_start = 0;
     int retval = B_SKIP_WORD;
-    char *match_word = NULL;
+    char *match_word;
 
     /* search start of word to spell check */
-    match_word = edit_get_word_from_pos (edit,  edit->curs1, &word_start, &word_len, &cut_len);
+    match_word = edit_get_word_from_pos (edit, edit->curs1, &word_start, &word_len, &cut_len);
 
+#ifdef HAVE_CHARSET
+    if (mc_global.source_codepage >= 0 && (mc_global.source_codepage != mc_global.display_codepage))
+    {
+        GString *tmp_word;
+
+        tmp_word = str_convert_to_display (match_word);
+        g_free (match_word);
+        match_word = g_string_free (tmp_word, FALSE);
+    }
+#endif
     if (!aspell_check (match_word, (int) word_len))
     {
         GArray *suggest;
         unsigned int res;
 
         suggest = g_array_new (TRUE, FALSE, sizeof (char *));
+
         res = aspell_suggest (suggest, match_word, (int) word_len);
         if (res != 0)
         {
             char *new_word = NULL;
-            char *cp_word;
 
             edit->found_start = word_start;
             edit->found_len = word_len;
@@ -3605,12 +3615,25 @@ edit_suggest_current_word (WEdit * edit)
             edit_render_keypress (edit);
 
             retval = spell_dialog_spell_suggest_show (edit, match_word, &new_word, suggest);
-            cp_word = new_word;
             edit_cursor_move (edit, word_len - cut_len);
+
             if (retval == B_ENTER && new_word != NULL)
             {
                 guint i;
+                char *cp_word;
 
+#ifdef HAVE_CHARSET
+                if (mc_global.source_codepage >= 0 &&
+                    (mc_global.source_codepage != mc_global.display_codepage))
+                {
+                    GString *tmp_word;
+
+                    tmp_word = str_convert_to_input (new_word);
+                    g_free (new_word);
+                    new_word = g_string_free (tmp_word, FALSE);
+                }
+#endif
+                cp_word = new_word;
                 for (i = 0; i < word_len; i++)
                     edit_backspace (edit, 1);
                 for (; *new_word; new_word++)
