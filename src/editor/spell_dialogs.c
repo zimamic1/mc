@@ -39,6 +39,16 @@
 /*** public functions ****************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
 
+/**
+ * Show suggests for the current word
+ *
+ * @param edit. The pointer to the editor object.
+ * @param word. The word for spell check.
+ * @param new_word. The target word for which to replace the incorrect word.
+ * @param suggest. Array of the suggest for currunt word.
+ * @returns result of the 'run_dlg'
+ */
+
 int
 spell_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_word, GArray *suggest)
 {
@@ -127,6 +137,13 @@ spell_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_word
 }
 
 /* --------------------------------------------------------------------------------------------- */
+
+/**
+ * Show dialog for select language.
+ *
+ * @param languages. Array of the languages.
+ * @returns name of the languages
+ */
 
 char *
 spell_dialog_lang_list_show (GArray *languages)
