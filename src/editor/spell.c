@@ -127,11 +127,10 @@ static struct
 
 /*** file scope functions ************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Found the language name by the language code. For example: en_US -> American English
+ * Found the language name by language code. For example: en_US -> American English.
  *
- * @param code. The short name of the language. (ru, en, pl, uk, etc...)
+ * @param code Short name of the language (ru, en, pl, uk, etc...)
  * @returns the language name
  */
 
@@ -150,9 +149,8 @@ spell_decode_lang (const char *code)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Gets the symbol pointers from aspell library
+ * Checks if aspell library and symbols are available.
  *
  * @returns FALSE or error
  */
@@ -280,9 +278,8 @@ spell_available (void)
 /* --------------------------------------------------------------------------------------------- */
 /*** public functions ****************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Initialization of Aspell support
+ * Initialization of Aspell support.
  */
 
 void
@@ -320,9 +317,8 @@ aspell_init (void)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Deinitialization of Aspell support
+ * Deinitialization of Aspell support.
  */
 
 void
@@ -340,13 +336,11 @@ aspell_clean (void)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Return count avaible the languages. Fill the array 'lang_list'.
- * Are you need clear this array before use.
+ * Get array of available languages.
  *
- * @param lang_list. The array of languages.
- * @returns count the elements of the language list
+ * @param lang_list Array of languages. Must be cleared before use
+ * @returns language list length
  */
 
 unsigned int
@@ -382,11 +376,10 @@ aspell_get_lang_list (GArray * lang_list)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
  * Clear the array of languages.
  *
- * @param array. The array of languages.
+ * @param array Array of languages
  */
 
 void
@@ -408,11 +401,10 @@ aspell_array_clean (GArray * array)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Function return current the language name
+ * Get the current language name.
  *
- * @returns the language name
+ * @returns Language name
  */
 
 const char *
@@ -425,11 +417,10 @@ aspell_get_lang (void)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Set the language
+ * Set the language.
  *
- * @param the language name
+ * @param Language name
  * @returns FALSE or error
  */
 
@@ -471,13 +462,12 @@ aspell_set_lang (const char *lang)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Check word
+ * Check word.
  *
- * @param word. The word for spell check.
- * @param word_size,  The word size (in bytes).
- * @returns FALSE if it is not in the dictionary
+ * @param word Word for spell check
+ * @param word_size Word size (in bytes)
+ * @returns FALSE if word is not in the dictionary
  */
 
 gboolean
@@ -492,15 +482,13 @@ aspell_check (const char *word, const int word_size)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Function examines the dictionaries and suggests possible words that may be used
- * to replace the incorrect word.
+ * Examine dictionaries and suggest possible words that may repalce the incorrect word.
  *
- * @param suggest are returned as an array through which you can iterate.
- * @param word. The word for spell check.
- * @param word_size,  The word size (in bytes).
- * @returns count of suggest for current word.
+ * @param suggest array of words to iterate through
+ * @param word Word for spell check
+ * @param word_size Word size (in bytes)
+ * @returns count of suggests for the word
  */
 
 unsigned int
@@ -538,13 +526,12 @@ aspell_suggest (GArray * suggest, const char *word, const int word_size)
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /*
- * Add word to personal dictionary
+ * Add word to personal dictionary.
  *
- * @param word. The word for spell check.
- * @param word_size,  The word size (in bytes).
- * @returns FALSE or error.
+ * @param word Word for spell check
+ * @param word_size  Word size (in bytes)
+ * @returns FALSE or error
  */
 gboolean
 aspell_add_to_dict (const char *word, int word_size)

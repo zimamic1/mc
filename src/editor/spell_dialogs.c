@@ -35,18 +35,27 @@
 #include "spell.h"
 #include "spell_dialogs.h"
 
+/*** global variables ****************************************************************************/
+
+/*** file scope macro definitions ****************************************************************/
+
+/*** file scope type declarations ****************************************************************/
+
+/*** file scope variables ************************************************************************/
+
+/*** file scope functions ************************************************************************/
+
 /* --------------------------------------------------------------------------------------------- */
 /*** public functions ****************************************************************************/
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Show suggests for the current word
+ * Show suggests for the current word.
  *
- * @param edit. The pointer to the editor object.
- * @param word. The word for spell check.
- * @param new_word. The target word for which to replace the incorrect word.
- * @param suggest. Array of the suggest for currunt word.
- * @returns result of the 'run_dlg'
+ * @param edit Editor object
+ * @param word Word for spell check
+ * @param new_word Word to replace the incorrect word
+ * @param suggest Array of suggests for current word
+ * @returns code of pressed button
  */
 
 int
@@ -137,12 +146,11 @@ spell_dialog_spell_suggest_show (WEdit * edit, const char *word, char **new_word
 }
 
 /* --------------------------------------------------------------------------------------------- */
-
 /**
- * Show dialog for select language.
+ * Show dialog to select language for spell check.
  *
- * @param languages. Array of the languages.
- * @returns name of the languages
+ * @param languages Array of available languages
+ * @returns name of choosed language
  */
 
 char *
