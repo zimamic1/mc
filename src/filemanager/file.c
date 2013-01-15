@@ -1203,7 +1203,7 @@ panel_compute_totals (const WPanel * panel, const void *ui,
             vfs_path_free (p);
 
             if (status != FILE_CONT)
-                return FILE_ABORT;
+                return status;
 
             *ret_marked += subdir_count;
             *ret_total += subdir_bytes;
@@ -1222,10 +1222,15 @@ panel_compute_totals (const WPanel * panel, const void *ui,
 
 /** Initialize variables for progress bars */
 static FileProgressStatus
-panel_operate_init_totals (FileOperation operation,
-                           const WPanel * panel, const char *source, FileOpContext * ctx)
+panel_operate_init_totals (FileOperation operation, const WPanel * panel, const char *source,
+                           FileOpContext * ctx, filegui_dialog_type_t dialog_type)
 {
     FileProgressStatus status;
+
+#ifdef ENABLE_BACKGROUND
+    if (mc_global.we_are_background)
+        return FILE_CONT;
+#endif
 
     if (operation != OP_MOVE && verbose && file_op_compute_totals)
     {
@@ -1251,6 +1256,9 @@ panel_operate_init_totals (FileOperation operation,
         compute_dir_size_destroy_ui (ui);
 
         ctx->progress_totals_computed = (status == FILE_CONT);
+
+        if (status == FILE_SKIP)
+            status = FILE_CONT;
     }
     else
     {
@@ -1259,6 +1267,8 @@ panel_operate_init_totals (FileOperation operation,
         ctx->progress_bytes = panel->total;
         ctx->progress_totals_computed = FALSE;
     }
+
+    file_op_context_create_ui (ctx, TRUE, dialog_type);
 
     return status;
 }
@@ -2644,6 +2654,7 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
     FileOpContext *ctx;
     FileOpTotalContext *tctx;
     vfs_path_t *tmp_vpath;
+    filegui_dialog_type_t dialog_type = FILEGUI_DIALOG_ONE_ITEM;
 
     gboolean do_bg = FALSE;     /* do background operation? */
 
@@ -2788,7 +2799,6 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
     tctx = file_op_total_context_new ();
     gettimeofday (&tctx->transfer_start, (struct timezone *) NULL);
 
-
 #ifdef ENABLE_BACKGROUND
     /* Did the user select to do a background operation? */
     if (do_bg)
@@ -2817,8 +2827,6 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
     else
 #endif /* ENABLE_BACKGROUND */
     {
-        filegui_dialog_type_t dialog_type;
-
         if (operation == OP_DELETE)
             dialog_type = FILEGUI_DIALOG_DELETE_ITEM;
         else
@@ -2829,8 +2837,6 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
             if (single_entry && (operation == OP_COPY) && S_ISDIR (selection (panel)->st.st_mode))
                 dialog_type = FILEGUI_DIALOG_MULTI_ITEM;
         }
-
-        file_op_context_create_ui (ctx, TRUE, dialog_type);
     }
 
     /* Initialize things */
@@ -2876,7 +2882,8 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
             source_with_vpath = vfs_path_append_new (panel->cwd_vpath, source, (char *) NULL);
         source_with_path_str = vfs_path_to_str (source_with_vpath);
 #endif /* WITH_FULL_PATHS */
-        if (panel_operate_init_totals (operation, panel, source_with_path_str, ctx) == FILE_CONT)
+        if (panel_operate_init_totals (operation, panel, source_with_path_str, ctx, dialog_type) ==
+            FILE_CONT)
         {
             if (operation == OP_DELETE)
             {
@@ -2954,7 +2961,7 @@ panel_operate (void *source_panel, FileOperation operation, gboolean force_singl
                 goto clean_up;
         }
 
-        if (panel_operate_init_totals (operation, panel, NULL, ctx) == FILE_CONT)
+        if (panel_operate_init_totals (operation, panel, NULL, ctx, dialog_type) == FILE_CONT)
         {
             /* Loop for every file, perform the actual copy operation */
             for (i = 0; i < panel->count; i++)
