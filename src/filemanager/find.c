@@ -510,7 +510,7 @@ find_parameters (char **start_dir, ssize_t * start_dir_len,
     const char *file_recurs_label = N_("&Find recursively");
 
     const char *file_pattern_label = N_("&Using shell patterns");
-    const char *file_skip_hidden_label = N_("S&kip hidden");
+//-->    const char *file_skip_hidden_label = N_("S&kip hidden");
 
     const char *file_only_directories_label = N_("Only &directories");
 
@@ -660,9 +660,9 @@ find_parameters (char **start_dir, ssize_t * start_dir_len,
 
     content_use_cbox = check_new (y2++, x2, options.content_use, content_use_label);
     add_widget (find_dlg, content_use_cbox);
-    cbox_position = FIND_Y - 5;
+  //  cbox_position = FIND_Y - 5;
 
-    only_directories_cbox = check_new (cbox_position--, 3, options.only_directories, file_only_directories_label);
+//    only_directories_cbox = check_new (cbox_position--, 3, options.only_directories, file_only_directories_label);
     add_widget (find_dlg, only_directories_cbox);
 
     /* Continue 1st column */
